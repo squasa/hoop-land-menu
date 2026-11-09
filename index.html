@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hoop Land Save Menu — instant editor</title>
+<meta name="description" content="Paste or drop a Hoop Land save, edit coins, rosters, facilities and more, then copy the raw save straight back into the game. 100% in your browser.">
+<style>
+  :root{
+    --bg:#141311; --panel:#1d1c19; --panel2:#24221e; --line:#37342c;
+    --ink:#f2ede3; --dim:#a89f8d; --red:#c1272d; --red-d:#8c1515;
+    --gold:#e8b33c; --green:#4caf7d; --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    --sans:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+  /* top bar */
+  header{position:sticky;top:0;z-index:50;background:#100f0e;border-bottom:3px solid var(--red);
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 16px}
+  .brand{font-weight:800;font-size:19px;letter-spacing:.2px;margin-right:4px}
+  .brand span{color:var(--red)}
+  .brand small{display:block;font-weight:400;font-size:11.5px;color:var(--dim)}
+  .hgroup{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
+  .btn{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 13px;font-size:13.5px;font-weight:600}
+  .btn:hover{border-color:var(--dim)}
+  .btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+  .btn.primary:hover{background:var(--red-d)}
+  .btn.gold{background:var(--gold);border-color:var(--gold);color:#201a08}
+  .btn:disabled{opacity:.38;cursor:not-allowed}
+  .btn.sm{padding:5px 9px;font-size:12.5px}
+  #status{font-family:var(--mono);font-size:12px;color:var(--dim);width:100%}
+  #status b{color:var(--green)} #status .err{color:#ff7a6b}
+  main{max-width:1180px;margin:0 auto;padding:18px 16px 70px}
+  /* drop zone */
+  #drop{border:2px dashed var(--line);border-radius:10px;padding:34px 20px;text-align:center;background:var(--panel)}
+  #drop.over{border-color:var(--gold);background:#26231b}
+  #drop h1{margin:0 0 6px;font-size:23px}
+  #drop p{margin:0 0 16px;color:var(--dim)}
+  .loadrow{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center}
+  .loadrow input[type=text]{width:min(420px,80vw)}
+  input[type=text],input[type=number],select,textarea{background:#121110;border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+  textarea{width:100%;min-height:110px;font-family:var(--mono);font-size:11.5px;margin-top:10px}
+  .hint{font-size:12.5px;color:var(--dim);margin-top:12px}
+  kbd{font-family:var(--mono);background:#000;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 5px;font-size:11px}
+  /* layout */
+  #app{display:none;margin-top:18px}
+  .picker{display:flex;flex-wrap:wrap;gap:10px;align-items:end;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .field label{display:block;font-size:11.5px;color:var(--dim);font-weight:700;margin-bottom:4px}
+  .field select,.field input{min-width:190px}
+  #teamCard{margin-left:auto;text-align:right;font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+  #teamCard b{color:var(--ink);font-size:15px;font-family:var(--sans)}
+  .coins{color:var(--gold);font-weight:700}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  section.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  section.card h2{margin:0 0 4px;font-size:16px}
+  section.card .sub{color:var(--dim);font-size:12.5px;margin:0 0 12px}
+  .preset{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .preset button{text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+  .preset button:hover{border-color:var(--gold)}
+  .preset b{display:block;font-size:13.5px}
+  .preset span{font-size:11.5px;color:var(--dim);font-weight:400}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+  .row label{width:110px;font-size:12.5px;color:var(--dim);font-weight:700}
+  input[type=range]{flex:1;min-width:110px;accent-color:var(--red)}
+  .num{width:105px;font-family:var(--mono)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:6px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--dim);font-size:11px}
+  tbody tr{cursor:pointer} tbody tr:hover{background:var(--panel2)} tbody tr.sel{background:#33231f}
+  .ovr{font-family:var(--mono);font-weight:700}
+  .attrGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 14px}
+  .attr{display:flex;align-items:center;gap:6px;font-size:12px}
+  .attr b{width:34px;font-family:var(--mono)}
+  .attr input[type=range]{min-width:60px}
+  .attr .v{width:44px;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  #log{font-family:var(--mono);font-size:12px;max-height:170px;overflow:auto;background:#121110;border:1px solid var(--line);border-radius:8px;padding:10px 12px;white-space:pre-wrap}
+  .fac{display:flex;gap:8px;flex-wrap:wrap}
+  .fac .f{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px}
+  .fac select{padding:3px 6px;margin-left:6px}
+  #stealResults{max-height:230px;overflow:auto}
+  footer{max-width:1180px;margin:0 auto;padding:0 16px 30px;color:var(--dim);font-size:12.5px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#000;border:1px solid var(--green);
+    color:var(--ink);padding:10px 16px;border-radius:8px;font-size:13.5px;display:none;z-index:99;max-width:92vw;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">HOOP LAND <span>SAVE MENU</span><small>instant editor — runs 100% in your browser, nothing uploads</small></div>
+  <div class="hgroup">
+    <button class="btn" id="btnUndo" disabled>Undo</button>
+    <button class="btn" id="btnReset" disabled>Reset save</button>
+    <button class="btn" id="btnDownload" disabled>Download file</button>
+    <button class="btn gold" id="btnCopy" disabled>Copy raw save</button>
+  </div>
+  <div id="status">No save loaded. Drop your save file anywhere, or press <b>Cmd/Ctrl+V</b> to paste raw save text.</div>
+</header>
+<main>
+  <div id="drop">
+    <h1>Drop your Hoop Land save here</h1>
+    <p>League file, season file — any raw Hoop Land JSON. Edit, then copy it straight back into the game.</p>
+    <div class="loadrow">
+      <button class="btn primary" id="btnPick">Choose save file</button>
+      <input type="file" id="fileInput" hidden>
+      <button class="btn" id="btnPasteBox">Paste raw text</button>
+      <input type="text" id="urlInput" placeholder="…or paste a direct save URL (https://…)">
+      <button class="btn" id="btnFetch">Fetch URL</button>
+    </div>
+    <textarea id="pasteBox" style="display:none" placeholder="Paste the entire raw save here (starts with {&quot;seasonLeagues&quot;…), it loads automatically."></textarea>
+    <div class="hint">Fastest loop: paste raw in (<kbd>Cmd/Ctrl+V</kbd> anywhere) → tap a preset → <kbd>Copy raw save</kbd> → paste into Hoop Land's import. Your file never leaves this page.</div>
+  </div>
+
+  <div id="app">
+    <div class="picker">
+      <div class="field"><label>LEAGUE</label><select id="leagueSel"></select></div>
+      <div class="field"><label>YOUR TEAM (search)</label><input type="text" id="teamSearch" placeholder="e.g. Stanford" list="teamList"><datalist id="teamList"></datalist></div>
+      <div class="field"><label>TEAM</label><select id="teamSel"></select></div>
+      <div id="teamCard"></div>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>One-tap presets</h2>
+        <p class="sub">Apply to the selected team instantly. Everything is undoable.</p>
+        <div class="preset">
+          <button data-preset="god"><b>GOD TEAM</b><span>9999 coins · max facilities · 100 fans · full heal + morale</span></button>
+          <button data-preset="coins"><b>9999 COINS</b><span>effectively infinite money</span></button>
+          <button data-preset="maxroster"><b>MAX ROSTER</b><span>every attribute 20/20 · potential 10 · skills lvl 3</span></button>
+          <button data-preset="maxpot"><b>MAX POTENTIAL</b><span>ceilings to 20, keep current ratings — grow naturally</span></button>
+          <button data-preset="plus2"><b>+2 EVERYONE</b><span>every attribute +2 (capped at ceiling)</span></button>
+          <button data-preset="heal"><b>HEAL &amp; REST</b><span>clear all injuries · condition &amp; morale 100</span></button>
+          <button data-preset="staff"><b>MAX COACHING STAFF</b><span>development / motivation / leadership 20/20</span></button>
+          <button data-preset="young"><b>YOUNG CORE</b><span>everyone on the roster turns 18</span></button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Team editor</h2>
+        <p class="sub">Front office for the selected team. Changes apply as you type.</p>
+        <div class="row"><label>Coins</label><input class="num" type="number" id="edCoins" min="0" step="1">
+          <button class="btn sm" data-coins="9999">9999</button><button class="btn sm" data-coins="99999">99999</button><button class="btn sm" id="coinsPlus">+1000</button></div>
+        <div class="row"><label>Fans</label><input type="range" id="edFans" min="0" max="100"><input class="num" type="number" id="edFansN" min="0" max="100"></div>
+        <div class="row"><label>FO condition</label><input type="range" id="edCond" min="0" max="100"><input class="num" type="number" id="edCondN" min="0" max="100"></div>
+        <div class="row"><label>FO morale</label><input type="range" id="edMorale" min="0" max="100"><input class="num" type="number" id="edMoraleN" min="0" max="100"></div>
+        <div class="row"><label>Prestige pts</label><input class="num" type="number" id="edPrestige" min="0" step="1"></div>
+        <div class="row" style="align-items:start"><label>Facilities</label><div class="fac" id="facBox"></div></div>
+        <div class="row"><button class="btn sm" id="btnMaxFac">Max all facilities (tier 4)</button></div>
+      </section>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Roster</h2>
+        <p class="sub">Click a player to edit. OVR = average attribute. Drag nothing, it's instant.</p>
+        <div style="overflow:auto"><table><thead><tr><th>#</th><th>Player</th><th>Age</th><th>OVR</th><th>Pot</th><th>Cond</th><th></th></tr></thead><tbody id="rosterBody"></tbody></table></div>
+      </section>
+
+      <section class="card" id="playerCard">
+        <h2>Player editor</h2>
+        <p class="sub" id="playerSub">Select a player from the roster.</p>
+        <div id="playerEditor" style="display:none">
+          <div class="row">
+            <button class="btn sm gold" id="plMax">Max this player (20/20)</button>
+            <button class="btn sm" id="plHeal">Heal + 100 cond/morale</button>
+            <button class="btn sm" id="plSkills">Skills → lvl 3</button>
+          </div>
+          <div class="row"><label>Age</label><input class="num" type="number" id="plAge" min="14" max="60">
+            <label style="width:auto">Height (in)</label><input class="num" type="number" id="plHt" min="60" max="96">
+            <label style="width:auto">Potential</label><input class="num" type="number" id="plPot" min="0" max="10"></div>
+          <p class="sub" style="margin:10px 0 6px">Slider = current rating · number = ceiling. Both 0–20.</p>
+          <div class="attrGrid" id="attrGrid"></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Steal a player</h2>
+        <p class="sub">Search every roster + free agents in this league, move anyone onto your team. Their old team keeps playing short-handed — that's the point.</p>
+        <div class="row"><input type="text" id="stealSearch" placeholder="Search player name…" style="flex:1"></div>
+        <div id="stealResults"><table><thead><tr><th>Player</th><th>Team</th><th>OVR</th><th></th></tr></thead><tbody id="stealBody"></tbody></table></div>
+      </section>
+
+      <section class="card">
+        <h2>Export</h2>
+        <p class="sub">Copy raw and paste into Hoop Land's import, or download the file. Shortcut: <kbd>Cmd/Ctrl+Shift+C</kbd> copies raw.</p>
+        <div class="row">
+          <button class="btn gold" id="btnCopy2">Copy raw save</button>
+          <button class="btn" id="btnDownload2">Download file</button>
+          <span id="exportInfo" style="font-family:var(--mono);font-size:12px;color:var(--dim)"></span>
+        </div>
+        <h2 style="margin-top:16px">Change log</h2>
+        <div id="log">No changes yet.</div>
+      </section>
+    </div>
+  </div>
+</main>
+<footer>Every edit happens locally in your browser — no server, no upload, works offline once loaded. Always keep a backup of your original save before importing an edited one. Attribute scale is 0–20, skill max is level 3, facility max is tier 4 (the game's own caps).</footer>
+<div class="toast" id="toast"></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const ATTRS=['LAY','DNK','INS','MID','TPT','FTS','DRB','PAS','ORE','DRE','STL','BLK','STR','SPD','STM'];
+const FAC_NAMES=['Arena','Training','Medical','Scouting'];
+let DATA=null, ORIG='', FILENAME='HOOPLAND_SAVE', LI=0, TEAM=null, PLAYER=null;
+let undoStack=[], changes=[];
+
+function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2600);}
+function status(html){$('status').innerHTML=html;}
+function logChange(msg){changes.push(msg);$('log').textContent=changes.slice().reverse().join('\n');}
+function teamName(t){return ((t.city||'')+' '+(t.name||'')).trim();}
+function ovr(p){if(!p.attributes)return 0;const v=ATTRS.map(a=>(p.attributes[a]||[0])[0]);return Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10;}
+function pushUndo(label){undoStack.push({label,snap:JSON.stringify(DATA)});if(undoStack.length>25)undoStack.shift();$('btnUndo').disabled=false;}
+function league(){return DATA.seasonLeagues[LI];}
+
+/* ---------- loading ---------- */
+function loadText(text,name){
+  let d;
+  try{d=JSON.parse(text);}catch(e){status('<span class="err">Could not parse that — not valid JSON. Paste the entire raw save.</span>');return;}
+  if(!d.seasonLeagues||!d.seasonLeagues.length){status('<span class="err">Parsed, but no seasonLeagues found — not a Hoop Land save.</span>');return;}
+  DATA=d; ORIG=text; FILENAME=name||'HOOPLAND_SAVE'; LI=0; PLAYER=null; undoStack=[]; changes=[];
+  $('log').textContent='No changes yet.';
+  $('btnUndo').disabled=true;
+  ['btnReset','btnDownload','btnCopy'].forEach(id=>$(id).disabled=false);
+  $('pasteBox').value='';
+  buildLeagues();
+  $('app').style.display='block';
+  $('drop').style.display='none';
+  const mb=(new Blob([text]).size/1048576).toFixed(1);
+  status('<b>Loaded</b> '+FILENAME+' · '+mb+' MB · '+DATA.seasonLeagues.length+' league(s). Pick your team, tap a preset, hit Copy raw save.');
+  $('app').scrollIntoView({behavior:'smooth'});
+}
+function buildLeagues(){
+  const s=$('leagueSel'); s.innerHTML='';
+  DATA.seasonLeagues.forEach((lg,i)=>{const o=document.createElement('option');o.value=i;o.textContent=lg.leagueName+' ('+lg.teams.length+' teams)';s.appendChild(o);});
+  s.value=LI; buildTeams();
+}
+function buildTeams(preferName){
+  const lg=league(), sel=$('teamSel'), dl=$('teamList');
+  sel.innerHTML=''; dl.innerHTML='';
+  lg.teams.forEach(t=>{
+    const o=document.createElement('option');o.value=t.id;o.textContent=teamName(t);sel.appendChild(o);
+    const d=document.createElement('option');d.value=teamName(t);dl.appendChild(d);
+  });
+  let pick=lg.teams[0];
+  if(preferName){const f=lg.teams.find(t=>teamName(t).toLowerCase().includes(preferName.toLowerCase()));if(f)pick=f;}
+  else if(TEAM){const f=lg.teams.find(t=>t.id===TEAM.id);if(f)pick=f;}
+  sel.value=pick.id; selectTeam(pick.id);
+}
+function selectTeam(id){
+  TEAM=league().teams.find(t=>String(t.id)===String(id)); PLAYER=null;
+  $('teamSearch').value=teamName(TEAM);
+  renderTeam(); renderRoster(); renderPlayer(); renderSteal('');
+}
+function renderTeam(){
+  const fo=TEAM.frontOffice||{};
+  $('teamCard').innerHTML='<b>'+teamName(TEAM)+'</b><br><span class="coins">'+(fo.coins??0)+' coins</span> · '+(TEAM.roster?TEAM.roster.length:0)+' players · fans '+(fo.fans??'-');
+  $('edCoins').value=fo.coins??0;
+  $('edFans').value=$('edFansN').value=fo.fans??0;
+  $('edCond').value=$('edCondN').value=fo.condition??0;
+  $('edMorale').value=$('edMoraleN').value=fo.morale??0;
+  $('edPrestige').value=TEAM.prestigePoints??0;
+  const box=$('facBox'); box.innerHTML='';
+  (fo.facilities||[]).forEach((f,i)=>{
+    const d=document.createElement('div');d.className='f';
+    d.innerHTML=(FAC_NAMES[f.type]||('Facility '+f.type))+' ';
+    const s=document.createElement('select');
+    [1,2,3,4].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent='Tier '+v;s.appendChild(o);});
+    s.value=f.tier;
+    s.onchange=()=>{pushUndo('facility');f.tier=+s.value;logChange(teamName(TEAM)+' facility '+(FAC_NAMES[f.type]||f.type)+' → tier '+s.value);};
+    d.appendChild(s); box.appendChild(d);
+  });
+  updateExportInfo();
+}
+function updateExportInfo(){
+  if(!DATA)return;
+  const bytes=new Blob([JSON.stringify(DATA)]).size;
+  $('exportInfo').textContent=(bytes/1048576).toFixed(1)+' MB raw · '+changes.length+' change(s)';
+}
+/* ---------- roster / player ---------- */
+function renderRoster(){
+  const tb=$('rosterBody'); tb.innerHTML='';
+  (TEAM.roster||[]).forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    if(PLAYER&&PLAYER.id===p.id)tr.className='sel';
+    tr.innerHTML='<td>'+(p.num??i)+'</td><td>'+p.fn+' '+p.ln+'</td><td>'+p.age+'</td><td class="ovr">'+ovr(p)+'</td><td>'+p.pot+'</td><td>'+((p.season||{}).condition??'-')+'</td>';
+    const td=document.createElement('td');
+    const b=document.createElement('button');b.className='btn sm';b.textContent='Max';
+    b.onclick=e=>{e.stopPropagation();pushUndo('max player');maxPlayer(p);logChange('Maxed '+p.fn+' '+p.ln);renderRoster();renderPlayer();toast(p.fn+' '+p.ln+' maxed');};
+    td.appendChild(b); tr.appendChild(td);
+    tr.onclick=()=>{PLAYER=p;renderRoster();renderPlayer();};
+    tb.appendChild(tr);
+  });
+}
+function healPlayer(p){
+  if(!p.season)p.season={};
+  p.season.condition=100; p.season.morale=100;
+  p.season.injury={yr:0,core:0,upperBody:0,lowerBody:0,minorSeverity:0,majorSeverity:0,gamesOut:0,ageRegression:0,age:0};
+  if(p.gameStatus)p.gameStatus.injured=false;
+}
+function maxPlayer(p){
+  ATTRS.forEach(a=>{if(p.attributes)p.attributes[a]=[20,20];});
+  p.pot=10; healPlayer(p);
+  (p.skills||[]).forEach(s=>{s.level=3;s.equipped=true;});
+}
+function renderPlayer(){
+  const ed=$('playerEditor');
+  if(!PLAYER){ed.style.display='none';$('playerSub').textContent='Select a player from the roster.';return;}
+  ed.style.display='block';
+  $('playerSub').textContent=PLAYER.fn+' '+PLAYER.ln+' — OVR '+ovr(PLAYER)+' · '+(PLAYER.arc||'');
+  $('plAge').value=PLAYER.age; $('plHt').value=PLAYER.ht; $('plPot').value=PLAYER.pot;
+  const g=$('attrGrid'); g.innerHTML='';
+  ATTRS.forEach(a=>{
+    const cur=(PLAYER.attributes[a]||[0,0])[0], ceil=(PLAYER.attributes[a]||[0,0])[1];
+    const d=document.createElement('div');d.className='attr';
+    d.innerHTML='<b>'+a+'</b>';
+    const r=document.createElement('input');r.type='range';r.min=0;r.max=20;r.value=cur;
+    const n=document.createElement('input');n.type='number';n.className='v';n.min=0;n.max=20;n.value=ceil;n.title='ceiling';
+    const lab=document.createElement('span');lab.className='v';lab.textContent=cur+'/';
+    r.oninput=()=>{PLAYER.attributes[a][0]=+r.value;if(PLAYER.attributes[a][1]<+r.value){PLAYER.attributes[a][1]=+r.value;n.value=r.value;}lab.textContent=r.value+'/';};
+    r.onchange=()=>{renderRoster();$('playerSub').textContent=PLAYER.fn+' '+PLAYER.ln+' — OVR '+ovr(PLAYER);};
+    n.onchange=()=>{PLAYER.attributes[a][1]=Math.max(0,Math.min(20,+n.value||0));};
+    d.append(r,lab,n); g.appendChild(d);
+  });
+}
+/* ---------- presets ---------- */
+function applyPreset(key){
+  if(!TEAM)return;
+  pushUndo(key);
+  const fo=TEAM.frontOffice, tn=teamName(TEAM);
+  const roster=TEAM.roster||[];
+  if(key==='coins'||key==='god'){fo.coins=9999;logChange(tn+' coins → 9999');}
+  if(key==='god'){
+    (fo.facilities||[]).forEach(f=>{f.tier=4;f.condition=5;});
+    fo.fans=100; fo.condition=100; fo.morale=100;
+    roster.forEach(healPlayer);
+    logChange(tn+' GOD TEAM: facilities tier 4, fans/FO 100, roster healed');
+  }
+  if(key==='maxroster'){roster.forEach(maxPlayer);logChange(tn+' roster maxed (20/20, pot 10, skills 3)');}
+  if(key==='maxpot'){roster.forEach(p=>{ATTRS.forEach(a=>{if(p.attributes)p.attributes[a][1]=20;});p.pot=10;});logChange(tn+' potential ceilings → 20, pot 10');}
+  if(key==='plus2'){roster.forEach(p=>ATTRS.forEach(a=>{if(p.attributes)p.attributes[a][0]=Math.min(p.attributes[a][1],p.attributes[a][0]+2);}));logChange(tn+' everyone +2');}
+  if(key==='heal'){roster.forEach(healPlayer);logChange(tn+' healed, condition/morale 100');}
+  if(key==='staff'){(fo.staff||[]).forEach(s=>{if(s.attributes){s.attributes.development=[20,20];s.attributes.motivation=[20,20];s.attributes.leadership=[20,20];}});logChange(tn+' staff maxed 20/20');}
+  if(key==='young'){roster.forEach(p=>p.age=18);logChange(tn+' roster age → 18');}
+  renderTeam(); renderRoster(); renderPlayer(); updateExportInfo();
+  toast('Applied to '+tn+'. Copy raw save to export.');
+}
+/* ---------- steal ---------- */
+function allPlayers(){
+  const out=[];
+  league().teams.forEach(t=>(t.roster||[]).forEach(p=>out.push({p,from:t})));
+  (league().freeAgents||[]).forEach(p=>{if(p.fn||p.ln)out.push({p,from:null});});
+  return out;
+}
+function renderSteal(q){
+  const tb=$('stealBody'); tb.innerHTML='';
+  if(!DATA||!TEAM)return;
+  q=(q||'').trim().toLowerCase();
+  if(q.length<2){tb.innerHTML='<tr><td colspan="4" style="color:var(--dim)">Type at least 2 letters…</td></tr>';return;}
+  const hits=allPlayers().filter(x=>((x.p.fn+' '+x.p.ln).toLowerCase().includes(q))&&(!x.from||x.from.id!==TEAM.id)).slice(0,30);
+  if(!hits.length){tb.innerHTML='<tr><td colspan="4" style="color:var(--dim)">No matches.</td></tr>';return;}
+  hits.forEach(x=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+x.p.fn+' '+x.p.ln+'</td><td>'+(x.from?teamName(x.from):'Free agent')+'</td><td class="ovr">'+ovr(x.p)+'</td>';
+    const td=document.createElement('td');
+    const b=document.createElement('button');b.className='btn sm gold';b.textContent='Steal → '+TEAM.shortName;
+    b.onclick=()=>{
+      pushUndo('steal');
+      if(x.from){const i=x.from.roster.indexOf(x.p);if(i>=0)x.from.roster.splice(i,1);
+        ['startingLineup','currentLineup'].forEach(k=>{if(Array.isArray(x.from[k]))x.from[k]=x.from[k].map(v=>v===x.p.id?0:v);});}
+      else{const i=league().freeAgents.indexOf(x.p);if(i>=0)league().freeAgents.splice(i,1);}
+      x.p.tid=TEAM.id; x.p.league=LI;
+      TEAM.roster.push(x.p);
+      logChange('Stole '+x.p.fn+' '+x.p.ln+' → '+teamName(TEAM));
+      renderTeam(); renderRoster(); renderSteal($('stealSearch').value); updateExportInfo();
+      toast(x.p.fn+' '+x.p.ln+' is now on '+teamName(TEAM));
+    };
+    td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
+  });
+}
+/* ---------- export ---------- */
+function rawSave(){return JSON.stringify(DATA);}
+async function copyRaw(){
+  if(!DATA)return;
+  const raw=rawSave();
+  try{await navigator.clipboard.writeText(raw);toast('Raw save copied ('+(raw.length/1048576).toFixed(1)+' MB) — paste it into Hoop Land import.');}
+  catch(e){
+    const ta=$('pasteBox');$('drop').style.display='block';ta.style.display='block';ta.value=raw;ta.focus();ta.select();
+    try{document.execCommand('copy');toast('Copied. If not, the raw text is selected above — Cmd/Ctrl+C.');}
+    catch(_){toast('Raw text is in the box at top — select all + copy.');}
+  }
+}
+function downloadSave(){
+  if(!DATA)return;
+  const blob=new Blob([rawSave()],{type:'application/octet-stream'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=FILENAME;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  toast('Downloaded '+FILENAME);
+}
+/* ---------- wiring ---------- */
+$('btnPick').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=e=>{const f=e.target.files[0];if(f)f.text().then(t=>loadText(t,f.name));};
+$('btnPasteBox').onclick=()=>{const b=$('pasteBox');b.style.display=b.style.display==='none'?'block':'none';b.focus();};
+$('pasteBox').addEventListener('input',e=>{const v=e.target.value.trim();if(v.startsWith('{')&&v.length>200)loadText(v,'HOOPLAND_SAVE');});
+$('btnFetch').onclick=async()=>{
+  const u=$('urlInput').value.trim(); if(!u)return;
+  status('Fetching…');
+  try{const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);loadText(await r.text(),u.split('/').pop().split('?')[0]||'HOOPLAND_SAVE');}
+  catch(e){status('<span class="err">Fetch failed ('+e.message+') — the host may block cross-site reads. Download the file and drop it here instead.</span>');}
+};
+['dragover','dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{
+  e.preventDefault();
+  $('drop').classList.toggle('over',ev==='dragover');
+  if(ev==='drop'){const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)f.text().then(t=>loadText(t,f.name));}
+}));
+document.addEventListener('paste',e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='textarea'||tag==='select')return;
+  const t=(e.clipboardData||window.clipboardData).getData('text');
+  if(t&&t.trim().startsWith('{')&&t.length>200)loadText(t.trim(),'HOOPLAND_SAVE');
+});
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.shiftKey&&(e.key==='C'||e.key==='c')){e.preventDefault();copyRaw();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='z'&&!e.shiftKey){const tag=(e.target.tagName||'').toLowerCase();if(tag!=='input'&&tag!=='textarea')doUndo();}
+});
+function doUndo(){
+  const u=undoStack.pop(); if(!u)return;
+  DATA=JSON.parse(u.snap);
+  const keepId=TEAM?TEAM.id:null, keepName=TEAM?teamName(TEAM):'';
+  buildLeagues();
+  if(keepId!=null){const t=league().teams.find(x=>x.id===keepId);if(t){ $('teamSel').value=t.id; selectTeam(t.id); }}
+  $('btnUndo').disabled=!undoStack.length;
+  changes.push('↩ undid: '+u.label); $('log').textContent=changes.slice().reverse().join('\n');
+  updateExportInfo(); toast('Undid '+u.label);
+}
+$('btnUndo').onclick=doUndo;
+$('btnReset').onclick=()=>{if(ORIG){pushUndo('reset');loadText(ORIG,FILENAME);toast('Back to the original save.');}};
+$('btnCopy').onclick=copyRaw; $('btnCopy2').onclick=copyRaw;
+$('btnDownload').onclick=downloadSave; $('btnDownload2').onclick=downloadSave;
+$('leagueSel').onchange=e=>{LI=+e.target.value;TEAM=null;buildTeams($('teamSearch').value);};
+$('teamSel').onchange=e=>selectTeam(e.target.value);
+$('teamSearch').addEventListener('change',e=>{
+  const t=league().teams.find(x=>teamName(x).toLowerCase()===e.target.value.trim().toLowerCase())
+        ||league().teams.find(x=>teamName(x).toLowerCase().includes(e.target.value.trim().toLowerCase()));
+  if(t){$('teamSel').value=t.id;selectTeam(t.id);}
+});
+document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
+function bindPair(rangeId,numId,apply){
+  const r=$(rangeId),n=$(numId);
+  r.oninput=()=>{n.value=r.value;apply(+r.value);};
+  n.onchange=()=>{r.value=n.value;apply(+n.value);};
+}
+bindPair('edFans','edFansN',v=>{TEAM.frontOffice.fans=v;});
+bindPair('edCond','edCondN',v=>{TEAM.frontOffice.condition=v;});
+bindPair('edMorale','edMoraleN',v=>{TEAM.frontOffice.morale=v;});
+$('edCoins').onchange=e=>{pushUndo('coins');TEAM.frontOffice.coins=Math.max(0,+e.target.value||0);logChange(teamName(TEAM)+' coins → '+TEAM.frontOffice.coins);renderTeam();};
+$('edPrestige').onchange=e=>{TEAM.prestigePoints=Math.max(0,+e.target.value||0);logChange(teamName(TEAM)+' prestige → '+TEAM.prestigePoints);};
+document.querySelectorAll('[data-coins]').forEach(b=>b.onclick=()=>{pushUndo('coins');TEAM.frontOffice.coins=+b.dataset.coins;logChange(teamName(TEAM)+' coins → '+b.dataset.coins);renderTeam();toast(b.dataset.coins+' coins');});
+$('coinsPlus').onclick=()=>{pushUndo('coins');TEAM.frontOffice.coins=(TEAM.frontOffice.coins||0)+1000;logChange(teamName(TEAM)+' coins +1000 → '+TEAM.frontOffice.coins);renderTeam();};
+$('btnMaxFac').onclick=()=>{pushUndo('facilities');(TEAM.frontOffice.facilities||[]).forEach(f=>{f.tier=4;f.condition=5;});logChange(teamName(TEAM)+' facilities → tier 4');renderTeam();};
+$('plMax').onclick=()=>{if(PLAYER){pushUndo('max player');maxPlayer(PLAYER);logChange('Maxed '+PLAYER.fn+' '+PLAYER.ln);renderPlayer();renderRoster();}};
+$('plHeal').onclick=()=>{if(PLAYER){pushUndo('heal');healPlayer(PLAYER);logChange('Healed '+PLAYER.fn+' '+PLAYER.ln);renderRoster();}};
+$('plSkills').onclick=()=>{if(PLAYER){pushUndo('skills');(PLAYER.skills||[]).forEach(s=>{s.level=3;s.equipped=true;});logChange(PLAYER.fn+' '+PLAYER.ln+' skills → lvl 3');}};
+$('plAge').onchange=e=>{if(PLAYER)PLAYER.age=+e.target.value;renderRoster();};
+$('plHt').onchange=e=>{if(PLAYER)PLAYER.ht=+e.target.value;};
+$('plPot').onchange=e=>{if(PLAYER)PLAYER.pot=Math.max(0,Math.min(10,+e.target.value||0));renderRoster();};
+$('stealSearch').addEventListener('input',e=>renderSteal(e.target.value));
+</script>
+</body>
+</html>
