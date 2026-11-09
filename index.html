@@ -98,6 +98,15 @@
   <div id="status">No save loaded. Drop your save file anywhere, or press <b>Cmd/Ctrl+V</b> to paste raw save text.</div>
 </header>
 <main>
+  <section class="card" style="margin-bottom:14px;border-color:var(--red)">
+    <h2>Your hosted save — paste this link into Hoop Land</h2>
+    <p class="sub">NBA_CAMPUS_Y1_2026 with Stanford at 9999 coins. In Hoop Land use the download / import-from-URL option and paste this exact link:</p>
+    <div class="row">
+      <input type="text" id="hostedUrl" readonly value="https://squasa.github.io/hoop-land-menu/NBA_CAMPUS_Y1_2026_SAVE_FILE_01" style="flex:1;font-family:var(--mono);font-size:12.5px">
+      <button class="btn gold" id="btnCopyLink">Copy link</button>
+      <a class="btn" href="NBA_CAMPUS_Y1_2026_SAVE_FILE_01" download style="text-decoration:none">Download raw</a>
+    </div>
+  </section>
   <div id="drop">
     <h1>Drop your Hoop Land save here</h1>
     <p>League file, season file — any raw Hoop Land JSON. Edit, then copy it straight back into the game.</p>
@@ -468,6 +477,11 @@ $('plAge').onchange=e=>{if(PLAYER)PLAYER.age=+e.target.value;renderRoster();};
 $('plHt').onchange=e=>{if(PLAYER)PLAYER.ht=+e.target.value;};
 $('plPot').onchange=e=>{if(PLAYER)PLAYER.pot=Math.max(0,Math.min(10,+e.target.value||0));renderRoster();};
 $('stealSearch').addEventListener('input',e=>renderSteal(e.target.value));
+$('btnCopyLink').onclick=async()=>{
+  const u=$('hostedUrl').value;
+  try{await navigator.clipboard.writeText(u);toast('Link copied — paste it into Hoop Land.');}
+  catch(e){$('hostedUrl').select();document.execCommand('copy');toast('Link copied.');}
+};
 </script>
 </body>
 </html>
