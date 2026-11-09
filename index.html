@@ -174,12 +174,24 @@
             <button class="btn sm gold" id="plMax">Max this player (20/20)</button>
             <button class="btn sm" id="plHeal">Heal + 100 cond/morale</button>
             <button class="btn sm" id="plSkills">Skills → lvl 3</button>
+            <button class="btn sm" id="plClone">Clone player</button>
           </div>
           <div class="row"><label>Age</label><input class="num" type="number" id="plAge" min="14" max="60">
             <label style="width:auto">Height (in)</label><input class="num" type="number" id="plHt" min="60" max="96">
             <label style="width:auto">Potential</label><input class="num" type="number" id="plPot" min="0" max="10"></div>
+          <div class="row"><label>Jersey #</label><input class="num" type="number" id="plNum" min="0" max="99">
+            <label style="width:auto">Weight (lb)</label><input class="num" type="number" id="plWt" min="100" max="400">
+            <label style="width:auto">Regress age</label><input class="num" type="number" id="plReg" min="18" max="60"></div>
+          <div class="row"><label>Contract yrs</label><input class="num" type="number" id="plYrs" min="0" max="10">
+            <label style="width:auto">Salary</label><input class="num" type="number" id="plSal" min="0">
+            <label style="width:auto">NIL $</label><input class="num" type="number" id="plNil" min="0">
+            <label style="width:auto">GPA raw</label><input class="num" type="number" id="plGpa" min="0"></div>
+          <div class="row"><button class="btn sm" id="plXP">Grant +999 XP</button><button class="btn sm" id="plAP">Grant +10 AP</button>
+            <span id="plXpInfo" style="font-family:var(--mono);font-size:11.5px;color:var(--dim)"></span></div>
           <p class="sub" style="margin:10px 0 6px">Slider = current rating · number = ceiling. Both 0–20.</p>
           <div class="attrGrid" id="attrGrid"></div>
+          <p class="sub" style="margin:12px 0 6px">Tendencies (−5 to +5):</p>
+          <div class="attrGrid" id="tendGrid"></div>
         </div>
       </section>
     </div>
@@ -189,6 +201,8 @@
         <h2>Steal a player</h2>
         <p class="sub">Search every roster + free agents in this league, move anyone onto your team. Their old team keeps playing short-handed — that's the point.</p>
         <div class="row"><input type="text" id="stealSearch" placeholder="Search player name…" style="flex:1"></div>
+        <div class="row"><label>Send back</label><select id="tradeBack" style="flex:1"><option value="">Nobody — straight steal</option></select></div>
+        <p class="sub">Pick one of your players above and Steal becomes a trade (they swap teams).</p>
         <div id="stealResults"><table><thead><tr><th>Player</th><th>Team</th><th>OVR</th><th></th></tr></thead><tbody id="stealBody"></tbody></table></div>
       </section>
 
@@ -202,6 +216,67 @@
         </div>
         <h2 style="margin-top:16px">Change log</h2>
         <div id="log">No changes yet.</div>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:14px;border-color:var(--gold)">
+      <h2>Publish to GitHub — get a fresh raw link for Hoop Land</h2>
+      <p class="sub">Uploads your edited save as a <b>new file</b> in your GitHub repo, straight from this page. You get a raw download link to paste into Hoop Land. Old publishes stay as backups.</p>
+      <details style="margin-bottom:12px">
+        <summary style="cursor:pointer;font-weight:700;font-size:13.5px">First-time setup (30 seconds, one time only)</summary>
+        <ol style="font-size:13.5px;color:var(--dim);margin:8px 0 4px;padding-left:20px;line-height:1.7">
+          <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:var(--gold)">github.com/settings/personal-access-tokens/new</a></li>
+          <li>Name it <b>Hoop Land Menu</b>, expiration 90 days</li>
+          <li>Repository access → <b>Only select repositories</b> → pick <b>hoop-land-menu</b></li>
+          <li>Permissions → Repository permissions → <b>Contents: Read and write</b></li>
+          <li>Generate token, copy it, paste it below and hit <b>Save + test</b></li>
+        </ol>
+        <p style="font-size:12.5px;color:var(--dim);margin:4px 0 0">The token is stored only in this browser on this device and is only ever sent to api.github.com. It can only touch this one repo.</p>
+      </details>
+      <div class="row"><label>GitHub user</label><input type="text" id="ghOwner" value="squasa" style="width:140px">
+        <label style="width:auto">Repo</label><input type="text" id="ghRepo" value="hoop-land-menu" style="width:170px">
+        <label style="width:auto">Branch</label><input type="text" id="ghBranch" value="main" style="width:90px"></div>
+      <div class="row"><label>Token</label><input type="password" id="ghToken" placeholder="github_pat_…" style="flex:1;min-width:220px;background:#121110;border:1px solid var(--line);border-radius:6px;padding:8px 10px">
+        <button class="btn" id="btnGhTest">Save + test</button><span id="ghStatus" style="font-family:var(--mono);font-size:12px;color:var(--dim)"></span></div>
+      <div class="row"><label>Save name</label><input type="text" id="pubName" style="flex:1;min-width:220px;font-family:var(--mono);font-size:12.5px">
+        <button class="btn sm" id="btnPubName">Auto-name</button></div>
+      <div class="row"><button class="btn gold" id="btnPublish" style="font-size:15px;padding:11px 20px">Publish edited save → new raw link</button></div>
+      <div id="pubLog" style="font-family:var(--mono);font-size:12px;background:#121110;border:1px solid var(--line);border-radius:8px;padding:10px 12px;white-space:pre-wrap;max-height:180px;overflow:auto">Not published yet this session.</div>
+      <div class="row" id="pubResult" style="display:none"><label>Raw link</label><input type="text" id="pubRawUrl" readonly style="flex:1;font-family:var(--mono);font-size:12px">
+        <button class="btn gold" id="btnCopyRawLink">Copy for Hoop Land</button></div>
+      <div class="row" id="pubResult2" style="display:none"><label>Pages link</label><input type="text" id="pubPagesUrl" readonly style="flex:1;font-family:var(--mono);font-size:12px">
+        <button class="btn" id="btnCopyPagesLink">Copy</button></div>
+      <div id="pubHistory" style="font-size:12.5px;color:var(--dim)"></div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>League sliders, rules &amp; difficulty</h2>
+        <p class="sub">For the selected league above. Sliders are 0–100; difficulty/settings are small mode numbers — change carefully, undo works.</p>
+        <div class="row"><label>Section</label><select id="lgBucket">
+          <option value="sliders">Gameplay sliders</option>
+          <option value="simulationSliders">Simulation sliders</option>
+          <option value="difficulty">Difficulty</option>
+          <option value="rules">Rules</option>
+          <option value="settings">Settings</option>
+          <option value="seasonQuick">Season quick toggles</option>
+        </select></div>
+        <div id="lgFields"></div>
+      </section>
+
+      <section class="card">
+        <h2>Fun tools</h2>
+        <p class="sub">Chaos buttons. All undoable.</p>
+        <div class="preset">
+          <button data-preset="dynasty"><b>DYNASTY MODE</b><span>god team + max staff + max potential + prestige 999</span></button>
+          <button data-preset="bankrupt"><b>BANKRUPT THE LEAGUE</b><span>every rival team in this league → 0 coins</span></button>
+          <button data-preset="richleague"><b>EVERYONE RICH</b><span>every team in this league → 9999 coins</span></button>
+          <button data-preset="noinjury"><b>INJURY-PROOF ROSTER</b><span>heal all + regression age 45 for your team</span></button>
+        </div>
+        <h2 style="margin-top:16px">Rebrand your team</h2>
+        <div class="row"><label>City</label><input type="text" id="rbCity"><label style="width:auto">Name</label><input type="text" id="rbName"></div>
+        <div class="row"><label>Short</label><input type="text" id="rbShort" maxlength="6" style="width:90px"><label style="width:auto">Arena</label><input type="text" id="rbArena" style="flex:1"></div>
+        <div class="row"><label>Colors</label><span id="rbColors"></span><button class="btn sm gold" id="btnRebrand">Apply rebrand</button></div>
       </section>
     </div>
   </div>
@@ -262,6 +337,13 @@ function selectTeam(id){
   TEAM=league().teams.find(t=>String(t.id)===String(id)); PLAYER=null;
   $('teamSearch').value=teamName(TEAM);
   renderTeam(); renderRoster(); renderPlayer(); renderSteal('');
+  renderLeagueEditor(); renderRebrand(); renderTradeBack(); autoPubName();
+}
+function renderTradeBack(){
+  const s=$('tradeBack'); const cur=s.value;
+  s.innerHTML='<option value="">Nobody — straight steal</option>';
+  (TEAM.roster||[]).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent='Trade away: '+p.fn+' '+p.ln+' (OVR '+ovr(p)+')';s.appendChild(o);});
+  s.value=cur;
 }
 function renderTeam(){
   const fo=TEAM.frontOffice||{};
@@ -333,6 +415,25 @@ function renderPlayer(){
     n.onchange=()=>{PLAYER.attributes[a][1]=Math.max(0,Math.min(20,+n.value||0));};
     d.append(r,lab,n); g.appendChild(d);
   });
+  renderPlayerExtra();
+}
+function renderPlayerExtra(){
+  if(!PLAYER)return;
+  $('plNum').value=PLAYER.num??0; $('plWt').value=PLAYER.wt??0; $('plReg').value=PLAYER.regressionAge??35;
+  const c=PLAYER.contract||{};
+  $('plYrs').value=c.yrs??0; $('plSal').value=c.sal??0; $('plNil').value=c.nil??0;
+  $('plGpa').value=(PLAYER.season||{}).gpa??0;
+  const xp=(PLAYER.season||{}).xp||[], ap=(PLAYER.season||{}).ap||[];
+  $('plXpInfo').textContent='XP ['+xp.join(',')+'] · AP ['+ap.join(',')+']';
+  const tg=$('tendGrid'); tg.innerHTML='';
+  Object.keys(PLAYER.tendencies||{}).forEach(k=>{
+    const d=document.createElement('div');d.className='attr';
+    d.innerHTML='<b style="width:82px;font-size:11px">'+k+'</b>';
+    const r=document.createElement('input');r.type='range';r.min=-5;r.max=5;r.step=1;r.value=PLAYER.tendencies[k];
+    const lab=document.createElement('span');lab.className='v';lab.textContent=PLAYER.tendencies[k];
+    r.oninput=()=>{PLAYER.tendencies[k]=+r.value;lab.textContent=r.value;};
+    d.append(r,lab); tg.appendChild(d);
+  });
 }
 /* ---------- presets ---------- */
 function applyPreset(key){
@@ -353,6 +454,16 @@ function applyPreset(key){
   if(key==='heal'){roster.forEach(healPlayer);logChange(tn+' healed, condition/morale 100');}
   if(key==='staff'){(fo.staff||[]).forEach(s=>{if(s.attributes){s.attributes.development=[20,20];s.attributes.motivation=[20,20];s.attributes.leadership=[20,20];}});logChange(tn+' staff maxed 20/20');}
   if(key==='young'){roster.forEach(p=>p.age=18);logChange(tn+' roster age → 18');}
+  if(key==='dynasty'){
+    fo.coins=9999; fo.fans=100; fo.condition=100; fo.morale=100; TEAM.prestigePoints=999;
+    (fo.facilities||[]).forEach(f=>{f.tier=4;f.condition=5;});
+    (fo.staff||[]).forEach(s=>{if(s.attributes){s.attributes.development=[20,20];s.attributes.motivation=[20,20];s.attributes.leadership=[20,20];}});
+    roster.forEach(p=>{ATTRS.forEach(a=>{if(p.attributes)p.attributes[a][1]=20;});p.pot=10;healPlayer(p);});
+    logChange(tn+' DYNASTY: coins/prestige/facilities/staff/potential maxed');
+  }
+  if(key==='bankrupt'){league().teams.forEach(t=>{if(t.id!==TEAM.id&&t.frontOffice)t.frontOffice.coins=0;});logChange('Bankrupted every rival in '+league().leagueName);}
+  if(key==='richleague'){league().teams.forEach(t=>{if(t.frontOffice)t.frontOffice.coins=9999;});logChange('Every team in '+league().leagueName+' → 9999 coins');}
+  if(key==='noinjury'){roster.forEach(p=>{healPlayer(p);p.regressionAge=45;});logChange(tn+' injury-proof: healed, regression age 45');}
   renderTeam(); renderRoster(); renderPlayer(); updateExportInfo();
   toast('Applied to '+tn+'. Copy raw save to export.');
 }
@@ -376,15 +487,26 @@ function renderSteal(q){
     const td=document.createElement('td');
     const b=document.createElement('button');b.className='btn sm gold';b.textContent='Steal → '+TEAM.shortName;
     b.onclick=()=>{
-      pushUndo('steal');
-      if(x.from){const i=x.from.roster.indexOf(x.p);if(i>=0)x.from.roster.splice(i,1);
-        ['startingLineup','currentLineup'].forEach(k=>{if(Array.isArray(x.from[k]))x.from[k]=x.from[k].map(v=>v===x.p.id?0:v);});}
+      pushUndo('steal/trade');
+      const sendId=$('tradeBack').value;
+      const sendBack=sendId?TEAM.roster.find(p=>String(p.id)===String(sendId)):null;
+      if(x.from){const i=x.from.roster.indexOf(x.p);if(i>=0)x.from.roster.splice(i,1);cleanLineups(x.from,x.p.id);}
       else{const i=league().freeAgents.indexOf(x.p);if(i>=0)league().freeAgents.splice(i,1);}
       x.p.tid=TEAM.id; x.p.league=LI;
+      if(x.p.contract)x.p.contract.tid=TEAM.id;
       TEAM.roster.push(x.p);
-      logChange('Stole '+x.p.fn+' '+x.p.ln+' → '+teamName(TEAM));
-      renderTeam(); renderRoster(); renderSteal($('stealSearch').value); updateExportInfo();
-      toast(x.p.fn+' '+x.p.ln+' is now on '+teamName(TEAM));
+      if(sendBack&&x.from){
+        const i=TEAM.roster.indexOf(sendBack);if(i>=0)TEAM.roster.splice(i,1);cleanLineups(TEAM,sendBack.id);
+        sendBack.tid=x.from.id; if(sendBack.contract)sendBack.contract.tid=x.from.id;
+        x.from.roster.push(sendBack);
+        logChange('Traded '+sendBack.fn+' '+sendBack.ln+' → '+teamName(x.from)+' for '+x.p.fn+' '+x.p.ln);
+        toast('Trade done: '+x.p.fn+' '+x.p.ln+' ↔ '+sendBack.fn+' '+sendBack.ln);
+      }else{
+        if(sendBack&&!x.from)logChange('(send-back ignored: free agent has no team)');
+        logChange('Stole '+x.p.fn+' '+x.p.ln+' → '+teamName(TEAM));
+        toast(x.p.fn+' '+x.p.ln+' is now on '+teamName(TEAM));
+      }
+      renderTeam(); renderRoster(); renderTradeBack(); renderSteal($('stealSearch').value); updateExportInfo();
     };
     td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
   });
@@ -482,6 +604,194 @@ $('btnCopyLink').onclick=async()=>{
   try{await navigator.clipboard.writeText(u);toast('Link copied — paste it into Hoop Land.');}
   catch(e){$('hostedUrl').select();document.execCommand('copy');toast('Link copied.');}
 };
+/* ---------- helpers for trades / clone ---------- */
+function cleanLineups(team,pid){
+  ['startingLineup','currentLineup','lineupPreset'].forEach(k=>{
+    const v=team[k];
+    if(Array.isArray(v))v.forEach(e=>{if(e&&typeof e==='object'&&e.pid===pid){e.pid=-1;if(Array.isArray(e.minutes))e.minutes=e.minutes.map(()=>0);}});
+  });
+  if(Array.isArray(team.scoringOptions))team.scoringOptions.forEach(e=>{if(e&&e.pid===pid)e.pid=-1;});
+}
+function clonePlayer(p){
+  const lg=league();
+  let maxId=lg.meta&&lg.meta.uPID?lg.meta.uPID:0;
+  lg.teams.forEach(t=>(t.roster||[]).forEach(x=>{if(x.id>maxId)maxId=x.id;}));
+  (lg.freeAgents||[]).forEach(x=>{if(x.id>maxId)maxId=x.id;});
+  const c=JSON.parse(JSON.stringify(p));
+  c.id=maxId+1; c.tid=TEAM.id; c.league=LI;
+  if(c.contract){c.contract.tid=TEAM.id;c.contract.pid=c.id;}
+  if(lg.meta)lg.meta.uPID=c.id;
+  TEAM.roster.push(c);
+  return c;
+}
+/* ---------- league editor (auto-discovered fields) ---------- */
+const SEASON_QUICK=[
+  ['injuries','Injuries on'],['regression','Regression on'],['cpuTrading','CPU trading'],
+  ['cpuRosterChanges','CPU roster changes'],['hidePotential','Hide potential'],['dynamicPrestige','Dynamic prestige'],
+  ['progressionRate','Progression rate'],['injuryProbability','Injury probability'],
+  ['salaryCap','Salary cap'],['totalGames','Total games'],['playoffTeams','Playoff teams'],['HOFbar','HOF bar']
+];
+function renderLeagueEditor(){
+  if(!DATA)return;
+  const bucket=$('lgBucket').value, box=$('lgFields');
+  box.innerHTML='';
+  const lg=league();
+  function fieldRow(label,obj,key){
+    const v=obj[key];
+    const row=document.createElement('div');row.className='row';
+    const lab=document.createElement('label');lab.style.width='170px';lab.textContent=label;row.appendChild(lab);
+    if(typeof v==='boolean'){
+      const cb=document.createElement('input');cb.type='checkbox';cb.checked=v;
+      cb.onchange=()=>{obj[key]=cb.checked;logChange(lg.leagueName+' '+label+' → '+cb.checked);};
+      row.appendChild(cb);
+    }else if(typeof v==='number'){
+      const isSlider=(bucket==='sliders'||bucket==='simulationSliders');
+      if(isSlider){
+        const r=document.createElement('input');r.type='range';r.min=0;r.max=100;r.value=v;
+        const n=document.createElement('span');n.className='v';n.style.fontFamily='var(--mono)';n.textContent=v;
+        r.oninput=()=>{obj[key]=+r.value;n.textContent=r.value;};
+        r.onchange=()=>logChange(lg.leagueName+' '+key+' → '+r.value);
+        row.append(r,n);
+      }else{
+        const n=document.createElement('input');n.type='number';n.className='num';n.value=v;
+        n.onchange=()=>{obj[key]=+n.value;logChange(lg.leagueName+' '+key+' → '+n.value);};
+        row.appendChild(n);
+      }
+    }else{
+      const s=document.createElement('span');s.style.color='var(--dim)';s.style.fontSize='12px';s.textContent='(not editable here)';row.appendChild(s);
+    }
+    box.appendChild(row);
+  }
+  if(bucket==='seasonQuick'){SEASON_QUICK.forEach(([k,label])=>{if(lg.season&&k in lg.season)fieldRow(label,lg.season,k);});}
+  else{const obj=lg[bucket]||{};Object.keys(obj).forEach(k=>fieldRow(k,obj,k));}
+}
+$('lgBucket').onchange=renderLeagueEditor;
+/* ---------- rebrand ---------- */
+function renderRebrand(){
+  if(!TEAM)return;
+  $('rbCity').value=TEAM.city||''; $('rbName').value=TEAM.name||'';
+  $('rbShort').value=TEAM.shortName||''; $('rbArena').value=TEAM.arenaName||'';
+  const box=$('rbColors'); box.innerHTML='';
+  (TEAM.teamColors||[]).forEach((hex,i)=>{
+    const inp=document.createElement('input');inp.type='color';
+    inp.value='#'+(/^[0-9A-Fa-f]{6}$/.test(hex)?hex:'888888');
+    inp.dataset.idx=i; inp.style.marginRight='6px'; inp.title='Color '+(i+1);
+    box.appendChild(inp);
+  });
+}
+$('btnRebrand').onclick=()=>{
+  if(!TEAM)return; pushUndo('rebrand');
+  TEAM.city=$('rbCity').value.trim(); TEAM.name=$('rbName').value.trim();
+  TEAM.shortName=$('rbShort').value.trim().toUpperCase(); TEAM.arenaName=$('rbArena').value.trim();
+  $('rbColors').querySelectorAll('input[type=color]').forEach(inp=>{TEAM.teamColors[+inp.dataset.idx]=inp.value.slice(1).toUpperCase();});
+  logChange('Rebranded → '+teamName(TEAM)+' ('+TEAM.shortName+')');
+  buildTeams(); toast('Rebrand applied: '+teamName(TEAM));
+};
+/* ---------- player extra wiring ---------- */
+$('plNum').onchange=e=>{if(PLAYER){PLAYER.num=+e.target.value;renderRoster();}};
+$('plWt').onchange=e=>{if(PLAYER)PLAYER.wt=+e.target.value;};
+$('plReg').onchange=e=>{if(PLAYER)PLAYER.regressionAge=+e.target.value;};
+$('plYrs').onchange=e=>{if(PLAYER&&PLAYER.contract)PLAYER.contract.yrs=+e.target.value;};
+$('plSal').onchange=e=>{if(PLAYER&&PLAYER.contract)PLAYER.contract.sal=+e.target.value;};
+$('plNil').onchange=e=>{if(PLAYER&&PLAYER.contract)PLAYER.contract.nil=+e.target.value;};
+$('plGpa').onchange=e=>{if(PLAYER&&PLAYER.season)PLAYER.season.gpa=+e.target.value;};
+$('plXP').onclick=()=>{if(PLAYER&&PLAYER.season){pushUndo('xp');PLAYER.season.xp=(PLAYER.season.xp||[]).map(v=>v+999);logChange(PLAYER.fn+' '+PLAYER.ln+' +999 XP');renderPlayerExtra();}};
+$('plAP').onclick=()=>{if(PLAYER&&PLAYER.season){pushUndo('ap');PLAYER.season.ap=(PLAYER.season.ap||[]).map(v=>v+10);logChange(PLAYER.fn+' '+PLAYER.ln+' +10 AP');renderPlayerExtra();}};
+$('plClone').onclick=()=>{if(PLAYER){pushUndo('clone');const c=clonePlayer(PLAYER);logChange('Cloned '+c.fn+' '+c.ln+' (new id '+c.id+') onto '+teamName(TEAM));renderTeam();renderRoster();renderTradeBack();toast('Cloned. Roster now '+TEAM.roster.length);}};
+/* ---------- GitHub publish (Git Data API) ---------- */
+function ghCfg(){
+  return {owner:$('ghOwner').value.trim(),repo:$('ghRepo').value.trim(),branch:$('ghBranch').value.trim()||'main',token:$('ghToken').value.trim()};
+}
+function saveGhCfg(){
+  try{localStorage.setItem('hoopGh',JSON.stringify(ghCfg()));}catch(e){}
+}
+function loadGhCfg(){
+  try{const c=JSON.parse(localStorage.getItem('hoopGh')||'null');if(!c)return;
+    if(c.owner)$('ghOwner').value=c.owner; if(c.repo)$('ghRepo').value=c.repo;
+    if(c.branch)$('ghBranch').value=c.branch; if(c.token)$('ghToken').value=c.token;
+    if(c.token)$('ghStatus').textContent='token loaded from this device';
+  }catch(e){}
+}
+async function ghFetch(path,opts){
+  const c=ghCfg();
+  const r=await fetch('https://api.github.com'+path,Object.assign({headers:{
+    'Accept':'application/vnd.github+json','Authorization':'Bearer '+c.token,
+    'X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'}},opts||{}));
+  if(!r.ok){let m='';try{m=(await r.json()).message||'';}catch(e){}throw new Error('GitHub '+r.status+' '+m);}
+  return r.status===204?null:r.json();
+}
+function pubLogLine(msg){const el=$('pubLog');el.textContent+=(el.textContent?'':'')+msg+'\n';el.scrollTop=el.scrollHeight;}
+function toBase64(str){
+  const bytes=new TextEncoder().encode(str);
+  let bin='';const CH=0x8000;
+  for(let i=0;i<bytes.length;i+=CH)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));
+  return btoa(bin);
+}
+function stampName(){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  const base=TEAM?teamName(TEAM).replace(/[^A-Za-z0-9]+/g,'_').toUpperCase():'HOOPLAND';
+  return base+'_'+d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes());
+}
+function autoPubName(){const el=$('pubName');if(el)el.value=stampName()+'.json';}
+$('btnPubName').onclick=autoPubName;
+$('btnGhTest').onclick=async()=>{
+  saveGhCfg(); const c=ghCfg();
+  if(!c.token){$('ghStatus').textContent='paste a token first';return;}
+  $('ghStatus').textContent='testing…';
+  try{const repo=await ghFetch('/repos/'+c.owner+'/'+c.repo);
+    $('ghStatus').textContent='✓ connected to '+repo.full_name+(repo.permissions&&repo.permissions.push?' (can write)':' (WARNING: no write access)');
+  }catch(e){$('ghStatus').textContent='✗ '+e.message;}
+};
+async function publishSave(){
+  if(!DATA){toast('Load a save first');return;}
+  const c=ghCfg();
+  if(!c.token){toast('Paste your GitHub token first (see setup)');return;}
+  saveGhCfg();
+  let name=$('pubName').value.trim().replace(/[^A-Za-z0-9._-]+/g,'_');
+  if(!name)name=stampName()+'.json';
+  if(!/\.json$/i.test(name))name+='.json';
+  const path='saves/'+name;
+  const repoPath='/repos/'+c.owner+'/'+c.repo;
+  $('pubLog').textContent='';
+  $('btnPublish').disabled=true;
+  try{
+    pubLogLine('Preparing '+(rawSave().length/1048576).toFixed(1)+' MB save → '+path);
+    const ref=await ghFetch(repoPath+'/git/ref/heads/'+c.branch);
+    const headSha=ref.object.sha;
+    const headCommit=await ghFetch(repoPath+'/git/commits/'+headSha);
+    pubLogLine('Uploading file blob (big file, give it a moment)…');
+    const blob=await ghFetch(repoPath+'/git/blobs',{method:'POST',body:JSON.stringify({content:toBase64(rawSave()),encoding:'base64'})});
+    const tree=await ghFetch(repoPath+'/git/trees',{method:'POST',body:JSON.stringify({base_tree:headCommit.tree.sha,tree:[{path:path,mode:'100644',type:'blob',sha:blob.sha}]})});
+    const commit=await ghFetch(repoPath+'/git/commits',{method:'POST',body:JSON.stringify({message:'Publish Hoop Land save '+name,tree:tree.sha,parents:[headSha]})});
+    await ghFetch(repoPath+'/git/refs/heads/'+c.branch,{method:'PATCH',body:JSON.stringify({sha:commit.sha})});
+    const rawUrl='https://raw.githubusercontent.com/'+c.owner+'/'+c.repo+'/'+c.branch+'/'+path;
+    const pagesUrl='https://'+c.owner+'.github.io/'+c.repo+'/'+path;
+    $('pubRawUrl').value=rawUrl; $('pubPagesUrl').value=pagesUrl;
+    $('pubResult').style.display='flex'; $('pubResult2').style.display='flex';
+    pubLogLine('Committed ✓ Waiting for the raw link to go live…');
+    let live=false;
+    for(let i=0;i<20&&!live;i++){
+      try{const r=await fetch(rawUrl,{method:'HEAD',cache:'no-store'});if(r.ok)live=true;}catch(e){}
+      if(!live)await new Promise(r=>setTimeout(r,3000));
+    }
+    pubLogLine(live?'✓ Raw link is LIVE — copy it into Hoop Land.':'Committed. Raw link usually live within a minute — try it in Hoop Land.');
+    try{const h=JSON.parse(localStorage.getItem('hoopPubHistory')||'[]');h.unshift({name:name,raw:rawUrl,pages:pagesUrl,when:new Date().toLocaleString()});localStorage.setItem('hoopPubHistory',JSON.stringify(h.slice(0,10)));}catch(e){}
+    renderPubHistory(); autoPubName();
+    toast('Published! Copy the raw link into Hoop Land.');
+  }catch(e){
+    pubLogLine('✗ FAILED: '+e.message);
+    pubLogLine('Check: token has Contents Read+Write on this repo, owner/repo/branch are right.');
+  }
+  $('btnPublish').disabled=false;
+}
+function renderPubHistory(){
+  let h=[];try{h=JSON.parse(localStorage.getItem('hoopPubHistory')||'[]');}catch(e){}
+  $('pubHistory').innerHTML=h.length?('<b style="color:var(--ink)">Recent publishes:</b><br>'+h.map(x=>x.when+' — <a href="'+x.raw+'" target="_blank" rel="noopener" style="color:var(--gold)">'+x.name+'</a>').join('<br>')):'';
+}
+$('btnPublish').onclick=publishSave;
+$('btnCopyRawLink').onclick=async()=>{try{await navigator.clipboard.writeText($('pubRawUrl').value);toast('Raw link copied — paste into Hoop Land.');}catch(e){$('pubRawUrl').select();document.execCommand('copy');}};
+$('btnCopyPagesLink').onclick=async()=>{try{await navigator.clipboard.writeText($('pubPagesUrl').value);toast('Pages link copied.');}catch(e){$('pubPagesUrl').select();document.execCommand('copy');}};
+loadGhCfg(); renderPubHistory(); autoPubName();
 </script>
 </body>
 </html>
