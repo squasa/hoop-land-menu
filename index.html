@@ -117,7 +117,7 @@
       <input type="text" id="urlInput" placeholder="…or paste a direct save URL (https://…)">
       <button class="btn" id="btnFetch">Fetch URL</button>
     </div>
-    <textarea id="pasteBox" style="display:none" placeholder="Paste the entire raw save here (starts with {&quot;seasonLeagues&quot;…), it loads automatically."></textarea>
+    <textarea id="pasteBox" style="display:none" placeholder="Paste the entire raw save here — season/league file, single-league file, draft-class list, even a single player. It loads automatically."></textarea>
     <div class="hint">Fastest loop: paste raw in (<kbd>Cmd/Ctrl+V</kbd> anywhere) → tap a preset → <kbd>Copy raw save</kbd> → paste into Hoop Land's import. Your file never leaves this page.</div>
   </div>
 
@@ -128,6 +128,32 @@
       <div class="field"><label>TEAM</label><select id="teamSel"></select></div>
       <div id="teamCard"></div>
     </div>
+
+    <section class="card" style="margin-top:14px;border-color:var(--gold)" id="findCard">
+      <h2>Find any player — any league, any pool</h2>
+      <p class="sub">Not just team rosters: <b>HS showcase / star teams</b>, draft class, free agents, 3-point contestants, retirees, Hall of Fame — in <b>every</b> league in the save. Click a player to open them in the Player editor below (analyze + edit + Max). In career HS/showcase? Hit ★ My Player.</p>
+      <div class="row">
+        <button class="btn gold" id="btnMyPlayer">★ My Player (career)</button>
+        <span id="myPlayerInfo" style="font-size:12.5px;color:var(--dim)"></span>
+      </div>
+      <div class="row">
+        <input type="text" id="findSearch" placeholder="Search any player name…" style="flex:1;min-width:200px">
+        <select id="findPool">
+          <option value="">All pools</option>
+          <option value="star">⭐ Showcase / star teams</option>
+          <option value="roster">Team rosters</option>
+          <option value="draftClass">Draft class</option>
+          <option value="freeAgents">Free agents</option>
+          <option value="threePointContestants">3-point contestants</option>
+          <option value="retirees">Retirees</option>
+          <option value="hallOfFame">Hall of Fame</option>
+          <option value="other">Anywhere else</option>
+        </select>
+        <button class="btn sm" id="btnBrowsePool">Browse pool</button>
+      </div>
+      <div id="findInfo" style="font-family:var(--mono);font-size:12px;color:var(--dim);margin:4px 0"></div>
+      <div style="overflow:auto;max-height:300px"><table><thead><tr><th>Player</th><th>Where</th><th>Age</th><th>OVR</th><th>Pot</th><th></th></tr></thead><tbody id="findBody"></tbody></table></div>
+    </section>
 
     <div class="grid">
       <section class="card">
@@ -168,7 +194,7 @@
 
       <section class="card" id="playerCard">
         <h2>Player editor</h2>
-        <p class="sub" id="playerSub">Select a player from the roster.</p>
+        <p class="sub" id="playerSub">Select a player from the roster — or find anyone (showcase, draft class, free agents…) above.</p>
         <div id="playerEditor" style="display:none">
           <div class="row">
             <button class="btn sm gold" id="plMax">Max this player (20/20)</button>
@@ -199,7 +225,7 @@
     <div class="grid">
       <section class="card">
         <h2>Steal a player</h2>
-        <p class="sub">Search every roster + free agents in this league, move anyone onto your team. Their old team keeps playing short-handed — that's the point.</p>
+        <p class="sub">Search every pool in this league — rosters, showcase/star teams, draft class, free agents, retirees — move anyone onto your team. Their old team keeps playing short-handed — that's the point.</p>
         <div class="row"><input type="text" id="stealSearch" placeholder="Search player name…" style="flex:1"></div>
         <div class="row"><label>Send back</label><select id="tradeBack" style="flex:1"><option value="">Nobody — straight steal</option></select></div>
         <p class="sub">Pick one of your players above and Steal becomes a trade (they swap teams).</p>
@@ -289,6 +315,7 @@ const $=id=>document.getElementById(id);
 const ATTRS=['LAY','DNK','INS','MID','TPT','FTS','DRB','PAS','ORE','DRE','STL','BLK','STR','SPD','STM'];
 const FAC_NAMES=['Arena','Training','Medical','Scouting'];
 let DATA=null, ORIG='', FILENAME='HOOPLAND_SAVE', LI=0, TEAM=null, PLAYER=null;
+let PLAYER_CTX=null, TEAM_KIND='t', WRAP=null;
 let undoStack=[], changes=[];
 
 function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2600);}
@@ -299,53 +326,173 @@ function ovr(p){if(!p.attributes)return 0;const v=ATTRS.map(a=>(p.attributes[a]|
 function pushUndo(label){undoStack.push({label,snap:JSON.stringify(DATA)});if(undoStack.length>25)undoStack.shift();$('btnUndo').disabled=false;}
 function league(){return DATA.seasonLeagues[LI];}
 
+/* ---------- any player, any pool (showcase / draft / FA / …) ---------- */
+function isPlayerObj(p){
+  return !!p&&typeof p==='object'&&p.attributes&&typeof p.attributes==='object'
+    &&(Array.isArray(p.attributes.LAY)||Array.isArray(p.attributes.SPD))&&!!(p.fn||p.ln);
+}
+const POOL_LABELS={freeAgents:'Free agents',draftClass:'Draft class',threePointContestants:'3-point contestants',retirees:'Retirees',hallOfFame:'Hall of Fame'};
+const SCAN_SKIP=new Set(['teams','starTeams','freeAgents','draftClass','threePointContestants','retirees','hallOfFame','currentGame','referees','coaches','media','commissioner','records','awards','conferences','divisions','gameballs','courts','contractOffers']);
+function poolEntries(li){
+  const lg=DATA&&DATA.seasonLeagues?DATA.seasonLeagues[li]:null; if(!lg)return [];
+  const out=[], seen=new Set();
+  const add=(p,pool,poolLabel,team,arr,teamKind)=>{if(!isPlayerObj(p)||seen.has(p))return;seen.add(p);out.push({p,li,leagueName:lg.leagueName||('League '+(li+1)),pool,poolLabel,team:team||null,arr:arr||null,teamKind:teamKind||'t'});};
+  (lg.teams||[]).forEach(t=>(t.roster||[]).forEach(p=>add(p,'roster',teamName(t),t,t.roster,'t')));
+  (lg.starTeams||[]).forEach(t=>(t.roster||[]).forEach(p=>add(p,'star','⭐ Showcase / star — '+teamName(t),t,t.roster,'s')));
+  Object.keys(POOL_LABELS).forEach(k=>(lg[k]||[]).forEach(p=>add(p,k,POOL_LABELS[k],null,lg[k])));
+  Object.keys(lg).forEach(k=>{
+    if(SCAN_SKIP.has(k))return;
+    const v=lg[k];
+    if(Array.isArray(v))v.forEach(p=>add(p,'other',k,null,v));
+    else if(v&&typeof v==='object'){
+      add(v,'other',k,null,null);
+      Object.keys(v).forEach(k2=>{const v2=v[k2];if(Array.isArray(v2))v2.forEach(p=>add(p,'other',k+'.'+k2,null,v2));});
+    }
+  });
+  return out;
+}
+function findEveryPlayer(){
+  if(!DATA||!DATA.seasonLeagues)return [];
+  const out=[]; DATA.seasonLeagues.forEach((_,li)=>poolEntries(li).forEach(e=>out.push(e))); return out;
+}
+function myPlayers(){
+  if(!DATA||!DATA.seasonLeagues)return [];
+  const out=[];
+  DATA.seasonLeagues.forEach((lg,li)=>{
+    const pid=lg.season?lg.season.playerId:0;
+    if(!pid)return;
+    const e=poolEntries(li).find(x=>String(x.p.id)===String(pid));
+    if(e)out.push(e);
+  });
+  return out;
+}
+function analyzeLine(p){
+  if(!p.attributes)return '';
+  const s=ATTRS.map(a=>[a,(p.attributes[a]||[0])[0]]).sort((x,y)=>y[1]-x[1]);
+  return ' · best: '+s.slice(0,3).map(x=>x[0]+' '+x[1]).join(', ')+' · weakest: '+s.slice(-2).map(x=>x[0]+' '+x[1]).join(', ');
+}
+function synthLeague(name,pools){
+  return Object.assign({leagueName:name,teams:[],starTeams:[],freeAgents:[],draftClass:[],threePointContestants:[],retirees:[],hallOfFame:[],sliders:{},simulationSliders:{},difficulty:{},rules:{},settings:{},season:{},meta:{}},pools||{});
+}
+
 /* ---------- loading ---------- */
 function loadText(text,name){
   let d;
   try{d=JSON.parse(text);}catch(e){status('<span class="err">Could not parse that — not valid JSON. Paste the entire raw save.</span>');return;}
-  if(!d.seasonLeagues||!d.seasonLeagues.length){status('<span class="err">Parsed, but no seasonLeagues found — not a Hoop Land save.</span>');return;}
-  DATA=d; ORIG=text; FILENAME=name||'HOOPLAND_SAVE'; LI=0; PLAYER=null; undoStack=[]; changes=[];
+  WRAP=null;
+  if(Array.isArray(d)){
+    if(!d.some(isPlayerObj)){status('<span class="err">Parsed a list, but no players in it — not a Hoop Land player/draft-class file.</span>');return;}
+    WRAP='array'; d={seasonLeagues:[synthLeague('Player list',{draftClass:d})]};
+  }else if(!d||typeof d!=='object'||!d.seasonLeagues||!d.seasonLeagues.length){
+    if(isPlayerObj(d)){WRAP='player'; d={seasonLeagues:[synthLeague('Player file',{freeAgents:[d]})]};}
+    else if(d&&(Array.isArray(d.teams)||Array.isArray(d.starTeams)||Array.isArray(d.freeAgents)||Array.isArray(d.draftClass))){WRAP='league'; d={seasonLeagues:[d]};}
+    else{status('<span class="err">Parsed, but no seasonLeagues, league, or player found — not a Hoop Land save.</span>');return;}
+  }
+  DATA=d; ORIG=text; FILENAME=name||'HOOPLAND_SAVE'; LI=0; TEAM=null; TEAM_KIND='t'; PLAYER=null; PLAYER_CTX=null; undoStack=[]; changes=[];
   $('log').textContent='No changes yet.';
   $('btnUndo').disabled=true;
   ['btnReset','btnDownload','btnCopy'].forEach(id=>$(id).disabled=false);
   $('pasteBox').value='';
   buildLeagues();
+  renderFind('','',false);
   $('app').style.display='block';
   $('drop').style.display='none';
   const mb=(new Blob([text]).size/1048576).toFixed(1);
-  status('<b>Loaded</b> '+FILENAME+' · '+mb+' MB · '+DATA.seasonLeagues.length+' league(s). Pick your team, tap a preset, hit Copy raw save.');
+  const mine=myPlayers();
+  status('<b>Loaded</b> '+FILENAME+' · '+mb+' MB · '+DATA.seasonLeagues.length+' league(s) · '+findEveryPlayer().length+' players found (all leagues, all pools)'+(mine.length?' · ★ My Player: <b>'+mine[0].p.fn+' '+mine[0].p.ln+'</b> ('+mine[0].poolLabel+') — hit ★ My Player':'' )+'.');
   $('app').scrollIntoView({behavior:'smooth'});
 }
 function buildLeagues(){
   const s=$('leagueSel'); s.innerHTML='';
-  DATA.seasonLeagues.forEach((lg,i)=>{const o=document.createElement('option');o.value=i;o.textContent=lg.leagueName+' ('+lg.teams.length+' teams)';s.appendChild(o);});
+  DATA.seasonLeagues.forEach((lg,i)=>{const o=document.createElement('option');o.value=i;o.textContent=(lg.leagueName||('League '+(i+1)))+' ('+(lg.teams||[]).length+' teams'+((lg.starTeams||[]).length?' + '+(lg.starTeams||[]).length+' showcase/star':'')+')';s.appendChild(o);});
   s.value=LI; buildTeams();
+}
+function teamRef(t,kind){return (kind||'t')+':'+t.id;}
+function findTeamByRef(ref){
+  const lg=league(); if(!lg||ref==null||ref==='')return null;
+  const str=String(ref), hasKind=str.includes(':');
+  const kind=hasKind?str.split(':')[0]:'t', id=hasKind?str.split(':').slice(1).join(':'):str;
+  const primary=kind==='s'?(lg.starTeams||[]):(lg.teams||[]);
+  return primary.find(t=>String(t.id)===String(id))||(lg.teams||[]).find(t=>String(t.id)===String(id))||(lg.starTeams||[]).find(t=>String(t.id)===String(id))||null;
 }
 function buildTeams(preferName){
   const lg=league(), sel=$('teamSel'), dl=$('teamList');
   sel.innerHTML=''; dl.innerHTML='';
-  lg.teams.forEach(t=>{
-    const o=document.createElement('option');o.value=t.id;o.textContent=teamName(t);sel.appendChild(o);
+  const all=[...(lg.teams||[]).map(t=>({t,k:'t'})),...(lg.starTeams||[]).map(t=>({t,k:'s'}))];
+  all.forEach(({t,k})=>{
+    const o=document.createElement('option');o.value=teamRef(t,k);o.textContent=(k==='s'?'⭐ ':'')+teamName(t)+(k==='s'?' (showcase/star)':'');sel.appendChild(o);
     const d=document.createElement('option');d.value=teamName(t);dl.appendChild(d);
   });
-  let pick=lg.teams[0];
-  if(preferName){const f=lg.teams.find(t=>teamName(t).toLowerCase().includes(preferName.toLowerCase()));if(f)pick=f;}
-  else if(TEAM){const f=lg.teams.find(t=>t.id===TEAM.id);if(f)pick=f;}
-  sel.value=pick.id; selectTeam(pick.id);
+  let pick=all[0]||null;
+  if(preferName){const f=all.find(x=>teamName(x.t).toLowerCase().includes(String(preferName).toLowerCase()));if(f)pick=f;}
+  else if(TEAM){const f=all.find(x=>x.t===TEAM)||all.find(x=>String(x.t.id)===String(TEAM.id)&&x.k===TEAM_KIND);if(f)pick=f;}
+  if(!pick){TEAM=null;PLAYER=null;PLAYER_CTX=null;renderTeam();renderRoster();renderPlayer();renderTradeBack();renderLeagueEditor();renderRebrand();autoPubName();return;}
+  sel.value=teamRef(pick.t,pick.k); selectTeam(sel.value);
 }
-function selectTeam(id){
-  TEAM=league().teams.find(t=>String(t.id)===String(id)); PLAYER=null;
+function selectTeam(ref){
+  TEAM=findTeamByRef(ref);
+  TEAM_KIND=String(ref||'').startsWith('s:')?'s':'t';
+  PLAYER=null; PLAYER_CTX=null;
+  if(!TEAM){renderTeam();renderRoster();renderPlayer();renderTradeBack();renderLeagueEditor();renderRebrand();autoPubName();return;}
   $('teamSearch').value=teamName(TEAM);
   renderTeam(); renderRoster(); renderPlayer(); renderSteal('');
   renderLeagueEditor(); renderRebrand(); renderTradeBack(); autoPubName();
 }
+function renderMyPlayerInfo(mine){
+  mine=mine||myPlayers();
+  const el=$('myPlayerInfo'); if(el)el.textContent=mine.length?mine.map(e=>e.p.fn+' '+e.p.ln+' — '+e.leagueName+' · '+e.poolLabel+' · OVR '+ovr(e.p)).join('  |  '):'No career My Player in this save (season.playerId unset) — search by name below.';
+  return mine;
+}
+function openPlayer(e){
+  if(!e||!e.p)return;
+  if(e.li!==LI){LI=e.li;$('leagueSel').value=LI;TEAM=null;buildTeams();}
+  if(e.team&&TEAM!==e.team){const ref=teamRef(e.team,e.teamKind||'t');$('teamSel').value=ref;selectTeam(ref);}
+  PLAYER=e.p; PLAYER_CTX=e;
+  renderRoster(); renderPlayer();
+  const card=$('playerCard'); if(card&&card.scrollIntoView)card.scrollIntoView({behavior:'smooth',block:'center'});
+  toast('Editing '+e.p.fn+' '+e.p.ln+' ('+e.poolLabel+')');
+}
+function renderFind(q,pool,browse){
+  const tb=$('findBody'); if(!tb)return;
+  tb.innerHTML='';
+  if(!DATA)return;
+  q=(q||'').trim().toLowerCase(); pool=pool||'';
+  let entries=findEveryPlayer();
+  const total=entries.length;
+  renderMyPlayerInfo();
+  if(pool)entries=entries.filter(e=>e.pool===pool);
+  if(q)entries=entries.filter(e=>((e.p.fn+' '+e.p.ln).toLowerCase().includes(q)));
+  else if(!browse){
+    const mine=myPlayers().filter(e=>!pool||e.pool===pool);
+    if(mine.length)entries=mine;
+    else{$('findInfo').textContent=total+' players in this save across all leagues/pools. Search a name, or pick a pool + Browse pool.';tb.innerHTML='<tr><td colspan="6" style="color:var(--dim)">Search any name above — showcase, draft class, free agents, every roster, everyone.</td></tr>';return;}
+  }
+  $('findInfo').textContent=entries.length+' match(es) · '+total+' players total in save (all leagues, all pools)';
+  if(!entries.length){tb.innerHTML='<tr><td colspan="6" style="color:var(--dim)">No matches. Try All pools.</td></tr>';return;}
+  entries.slice(0,100).forEach(e=>{
+    const tr=document.createElement('tr');
+    if(PLAYER&&PLAYER===e.p)tr.className='sel';
+    tr.innerHTML='<td>'+e.p.fn+' '+e.p.ln+'</td><td>'+e.leagueName+' · '+e.poolLabel+'</td><td>'+(e.p.age??'-')+'</td><td class="ovr">'+ovr(e.p)+'</td><td>'+(e.p.pot??'-')+'</td>';
+    const td=document.createElement('td');
+    const b=document.createElement('button');b.className='btn sm gold';b.textContent='Edit / analyze';
+    b.onclick=ev=>{ev.stopPropagation();openPlayer(e);};
+    const m=document.createElement('button');m.className='btn sm';m.textContent='Max';
+    m.onclick=ev=>{ev.stopPropagation();pushUndo('max player');maxPlayer(e.p);logChange('Maxed '+e.p.fn+' '+e.p.ln+' ('+e.leagueName+' · '+e.poolLabel+')');renderFind($('findSearch').value,$('findPool').value,true);if(PLAYER===e.p)renderPlayer();renderRoster();toast(e.p.fn+' '+e.p.ln+' maxed');};
+    td.append(b,m); tr.appendChild(td);
+    tr.onclick=()=>openPlayer(e);
+    tb.appendChild(tr);
+  });
+  if(entries.length>100)$('findInfo').textContent+=' · showing first 100 — keep typing to narrow';
+}
 function renderTradeBack(){
   const s=$('tradeBack'); const cur=s.value;
   s.innerHTML='<option value="">Nobody — straight steal</option>';
+  if(!TEAM)return;
   (TEAM.roster||[]).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent='Trade away: '+p.fn+' '+p.ln+' (OVR '+ovr(p)+')';s.appendChild(o);});
   s.value=cur;
 }
 function renderTeam(){
+  if(!TEAM){$('teamCard').innerHTML='No team in this file — use <b>Find any player</b> above.';updateExportInfo();return;}
   const fo=TEAM.frontOffice||{};
   $('teamCard').innerHTML='<b>'+teamName(TEAM)+'</b><br><span class="coins">'+(fo.coins??0)+' coins</span> · '+(TEAM.roster?TEAM.roster.length:0)+' players · fans '+(fo.fans??'-');
   $('edCoins').value=fo.coins??0;
@@ -367,12 +514,13 @@ function renderTeam(){
 }
 function updateExportInfo(){
   if(!DATA)return;
-  const bytes=new Blob([JSON.stringify(DATA)]).size;
+  const bytes=new Blob([rawSave()]).size;
   $('exportInfo').textContent=(bytes/1048576).toFixed(1)+' MB raw · '+changes.length+' change(s)';
 }
 /* ---------- roster / player ---------- */
 function renderRoster(){
   const tb=$('rosterBody'); tb.innerHTML='';
+  if(!TEAM){tb.innerHTML='<tr><td colspan="7" style="color:var(--dim)">No team selected — find your player above.</td></tr>';return;}
   (TEAM.roster||[]).forEach((p,i)=>{
     const tr=document.createElement('tr');
     if(PLAYER&&PLAYER.id===p.id)tr.className='sel';
@@ -381,7 +529,7 @@ function renderRoster(){
     const b=document.createElement('button');b.className='btn sm';b.textContent='Max';
     b.onclick=e=>{e.stopPropagation();pushUndo('max player');maxPlayer(p);logChange('Maxed '+p.fn+' '+p.ln);renderRoster();renderPlayer();toast(p.fn+' '+p.ln+' maxed');};
     td.appendChild(b); tr.appendChild(td);
-    tr.onclick=()=>{PLAYER=p;renderRoster();renderPlayer();};
+    tr.onclick=()=>{PLAYER=p;PLAYER_CTX={p,li:LI,leagueName:league().leagueName||'',pool:TEAM_KIND==='s'?'star':'roster',poolLabel:(TEAM_KIND==='s'?'⭐ Showcase / star — ':'')+teamName(TEAM),team:TEAM,arr:TEAM.roster,teamKind:TEAM_KIND};renderRoster();renderPlayer();};
     tb.appendChild(tr);
   });
 }
@@ -398,12 +546,14 @@ function maxPlayer(p){
 }
 function renderPlayer(){
   const ed=$('playerEditor');
-  if(!PLAYER){ed.style.display='none';$('playerSub').textContent='Select a player from the roster.';return;}
+  if(!PLAYER){ed.style.display='none';$('playerSub').textContent='Select a player from the roster — or find anyone above.';return;}
   ed.style.display='block';
-  $('playerSub').textContent=PLAYER.fn+' '+PLAYER.ln+' — OVR '+ovr(PLAYER)+' · '+(PLAYER.arc||'');
+  if(!PLAYER.attributes||typeof PLAYER.attributes!=='object')PLAYER.attributes={};
+  $('playerSub').textContent=PLAYER.fn+' '+PLAYER.ln+' — OVR '+ovr(PLAYER)+' · '+(PLAYER.arc||'')+(PLAYER_CTX?' · 📍 '+PLAYER_CTX.leagueName+' · '+PLAYER_CTX.poolLabel:'')+analyzeLine(PLAYER);
   $('plAge').value=PLAYER.age; $('plHt').value=PLAYER.ht; $('plPot').value=PLAYER.pot;
   const g=$('attrGrid'); g.innerHTML='';
   ATTRS.forEach(a=>{
+    if(!Array.isArray(PLAYER.attributes[a]))PLAYER.attributes[a]=[0,0];
     const cur=(PLAYER.attributes[a]||[0,0])[0], ceil=(PLAYER.attributes[a]||[0,0])[1];
     const d=document.createElement('div');d.className='attr';
     d.innerHTML='<b>'+a+'</b>';
@@ -439,7 +589,7 @@ function renderPlayerExtra(){
 function applyPreset(key){
   if(!TEAM)return;
   pushUndo(key);
-  const fo=TEAM.frontOffice, tn=teamName(TEAM);
+  const fo=TEAM.frontOffice||{}, tn=teamName(TEAM);
   const roster=TEAM.roster||[];
   if(key==='coins'||key==='god'){fo.coins=9999;logChange(tn+' coins → 9999');}
   if(key==='god'){
@@ -469,50 +619,53 @@ function applyPreset(key){
 }
 /* ---------- steal ---------- */
 function allPlayers(){
-  const out=[];
-  league().teams.forEach(t=>(t.roster||[]).forEach(p=>out.push({p,from:t})));
-  (league().freeAgents||[]).forEach(p=>{if(p.fn||p.ln)out.push({p,from:null});});
-  return out;
+  return poolEntries(LI);
 }
 function renderSteal(q){
   const tb=$('stealBody'); tb.innerHTML='';
   if(!DATA||!TEAM)return;
   q=(q||'').trim().toLowerCase();
   if(q.length<2){tb.innerHTML='<tr><td colspan="4" style="color:var(--dim)">Type at least 2 letters…</td></tr>';return;}
-  const hits=allPlayers().filter(x=>((x.p.fn+' '+x.p.ln).toLowerCase().includes(q))&&(!x.from||x.from.id!==TEAM.id)).slice(0,30);
+  const hits=allPlayers().filter(x=>((x.p.fn+' '+x.p.ln).toLowerCase().includes(q))&&(!x.team||x.team!==TEAM)).slice(0,30);
   if(!hits.length){tb.innerHTML='<tr><td colspan="4" style="color:var(--dim)">No matches.</td></tr>';return;}
   hits.forEach(x=>{
     const tr=document.createElement('tr');
-    tr.innerHTML='<td>'+x.p.fn+' '+x.p.ln+'</td><td>'+(x.from?teamName(x.from):'Free agent')+'</td><td class="ovr">'+ovr(x.p)+'</td>';
+    tr.innerHTML='<td>'+x.p.fn+' '+x.p.ln+'</td><td>'+x.poolLabel+'</td><td class="ovr">'+ovr(x.p)+'</td>';
     const td=document.createElement('td');
     const b=document.createElement('button');b.className='btn sm gold';b.textContent='Steal → '+TEAM.shortName;
     b.onclick=()=>{
       pushUndo('steal/trade');
       const sendId=$('tradeBack').value;
       const sendBack=sendId?TEAM.roster.find(p=>String(p.id)===String(sendId)):null;
-      if(x.from){const i=x.from.roster.indexOf(x.p);if(i>=0)x.from.roster.splice(i,1);cleanLineups(x.from,x.p.id);}
-      else{const i=league().freeAgents.indexOf(x.p);if(i>=0)league().freeAgents.splice(i,1);}
+      if(x.arr){const i=x.arr.indexOf(x.p);if(i>=0)x.arr.splice(i,1);}
+      if(x.team)cleanLineups(x.team,x.p.id);
       x.p.tid=TEAM.id; x.p.league=LI;
       if(x.p.contract)x.p.contract.tid=TEAM.id;
+      if(!TEAM.roster)TEAM.roster=[];
       TEAM.roster.push(x.p);
-      if(sendBack&&x.from){
+      if(sendBack&&x.team){
         const i=TEAM.roster.indexOf(sendBack);if(i>=0)TEAM.roster.splice(i,1);cleanLineups(TEAM,sendBack.id);
-        sendBack.tid=x.from.id; if(sendBack.contract)sendBack.contract.tid=x.from.id;
-        x.from.roster.push(sendBack);
-        logChange('Traded '+sendBack.fn+' '+sendBack.ln+' → '+teamName(x.from)+' for '+x.p.fn+' '+x.p.ln);
+        sendBack.tid=x.team.id; if(sendBack.contract)sendBack.contract.tid=x.team.id;
+        x.team.roster.push(sendBack);
+        logChange('Traded '+sendBack.fn+' '+sendBack.ln+' → '+teamName(x.team)+' for '+x.p.fn+' '+x.p.ln);
         toast('Trade done: '+x.p.fn+' '+x.p.ln+' ↔ '+sendBack.fn+' '+sendBack.ln);
       }else{
-        if(sendBack&&!x.from)logChange('(send-back ignored: free agent has no team)');
-        logChange('Stole '+x.p.fn+' '+x.p.ln+' → '+teamName(TEAM));
+        if(sendBack&&!x.team)logChange('(send-back ignored: '+x.poolLabel+' has no team to send to)');
+        logChange('Stole '+x.p.fn+' '+x.p.ln+' ('+x.poolLabel+') → '+teamName(TEAM));
         toast(x.p.fn+' '+x.p.ln+' is now on '+teamName(TEAM));
       }
-      renderTeam(); renderRoster(); renderTradeBack(); renderSteal($('stealSearch').value); updateExportInfo();
+      renderTeam(); renderRoster(); renderTradeBack(); renderSteal($('stealSearch').value); renderFind($('findSearch').value,$('findPool').value,true); updateExportInfo();
     };
     td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
   });
 }
 /* ---------- export ---------- */
-function rawSave(){return JSON.stringify(DATA);}
+function rawSave(){
+  if(WRAP==='player')return JSON.stringify((DATA.seasonLeagues[0].freeAgents||[])[0]||{});
+  if(WRAP==='array')return JSON.stringify(DATA.seasonLeagues[0].draftClass||[]);
+  if(WRAP==='league')return JSON.stringify(DATA.seasonLeagues[0]);
+  return JSON.stringify(DATA);
+}
 async function copyRaw(){
   if(!DATA)return;
   const raw=rawSave();
@@ -560,9 +713,13 @@ document.addEventListener('keydown',e=>{
 function doUndo(){
   const u=undoStack.pop(); if(!u)return;
   DATA=JSON.parse(u.snap);
-  const keepId=TEAM?TEAM.id:null, keepName=TEAM?teamName(TEAM):'';
+  const keepRef=TEAM?teamRef(TEAM,TEAM_KIND):null;
+  const keepPid=PLAYER?PLAYER.id:null, keepLi=PLAYER_CTX?PLAYER_CTX.li:LI;
+  PLAYER=null; PLAYER_CTX=null;
   buildLeagues();
-  if(keepId!=null){const t=league().teams.find(x=>x.id===keepId);if(t){ $('teamSel').value=t.id; selectTeam(t.id); }}
+  if(keepRef){const t=findTeamByRef(keepRef);if(t){$('teamSel').value=keepRef;selectTeam(keepRef);}}
+  if(keepPid!=null){const e=poolEntries(keepLi).find(x=>String(x.p.id)===String(keepPid))||findEveryPlayer().find(x=>String(x.p.id)===String(keepPid));if(e){PLAYER=e.p;PLAYER_CTX=e;renderRoster();renderPlayer();}}
+  renderFind($('findSearch').value,$('findPool').value,false);
   $('btnUndo').disabled=!undoStack.length;
   changes.push('↩ undid: '+u.label); $('log').textContent=changes.slice().reverse().join('\n');
   updateExportInfo(); toast('Undid '+u.label);
@@ -574,24 +731,29 @@ $('btnDownload').onclick=downloadSave; $('btnDownload2').onclick=downloadSave;
 $('leagueSel').onchange=e=>{LI=+e.target.value;TEAM=null;buildTeams($('teamSearch').value);};
 $('teamSel').onchange=e=>selectTeam(e.target.value);
 $('teamSearch').addEventListener('change',e=>{
-  const t=league().teams.find(x=>teamName(x).toLowerCase()===e.target.value.trim().toLowerCase())
-        ||league().teams.find(x=>teamName(x).toLowerCase().includes(e.target.value.trim().toLowerCase()));
-  if(t){$('teamSel').value=t.id;selectTeam(t.id);}
+  const q=e.target.value.trim().toLowerCase();
+  const all=[...(league().teams||[]).map(t=>({t,k:'t'})),...(league().starTeams||[]).map(t=>({t,k:'s'}))];
+  const hit=all.find(x=>teamName(x.t).toLowerCase()===q)||all.find(x=>teamName(x.t).toLowerCase().includes(q));
+  if(hit){$('teamSel').value=teamRef(hit.t,hit.k);selectTeam($('teamSel').value);}
 });
+$('findSearch').addEventListener('input',e=>renderFind(e.target.value,$('findPool').value,false));
+$('findPool').onchange=()=>renderFind($('findSearch').value,$('findPool').value,!!$('findSearch').value.trim());
+$('btnBrowsePool').onclick=()=>renderFind($('findSearch').value,$('findPool').value,true);
+$('btnMyPlayer').onclick=()=>{const m=renderMyPlayerInfo();if(m.length){openPlayer(m[0]);}else{toast('No My Player in this save — search by name');$('findSearch').focus();}};
 document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
 function bindPair(rangeId,numId,apply){
   const r=$(rangeId),n=$(numId);
   r.oninput=()=>{n.value=r.value;apply(+r.value);};
   n.onchange=()=>{r.value=n.value;apply(+n.value);};
 }
-bindPair('edFans','edFansN',v=>{TEAM.frontOffice.fans=v;});
-bindPair('edCond','edCondN',v=>{TEAM.frontOffice.condition=v;});
-bindPair('edMorale','edMoraleN',v=>{TEAM.frontOffice.morale=v;});
-$('edCoins').onchange=e=>{pushUndo('coins');TEAM.frontOffice.coins=Math.max(0,+e.target.value||0);logChange(teamName(TEAM)+' coins → '+TEAM.frontOffice.coins);renderTeam();};
-$('edPrestige').onchange=e=>{TEAM.prestigePoints=Math.max(0,+e.target.value||0);logChange(teamName(TEAM)+' prestige → '+TEAM.prestigePoints);};
-document.querySelectorAll('[data-coins]').forEach(b=>b.onclick=()=>{pushUndo('coins');TEAM.frontOffice.coins=+b.dataset.coins;logChange(teamName(TEAM)+' coins → '+b.dataset.coins);renderTeam();toast(b.dataset.coins+' coins');});
-$('coinsPlus').onclick=()=>{pushUndo('coins');TEAM.frontOffice.coins=(TEAM.frontOffice.coins||0)+1000;logChange(teamName(TEAM)+' coins +1000 → '+TEAM.frontOffice.coins);renderTeam();};
-$('btnMaxFac').onclick=()=>{pushUndo('facilities');(TEAM.frontOffice.facilities||[]).forEach(f=>{f.tier=4;f.condition=5;});logChange(teamName(TEAM)+' facilities → tier 4');renderTeam();};
+bindPair('edFans','edFansN',v=>{if(TEAM&&TEAM.frontOffice)TEAM.frontOffice.fans=v;});
+bindPair('edCond','edCondN',v=>{if(TEAM&&TEAM.frontOffice)TEAM.frontOffice.condition=v;});
+bindPair('edMorale','edMoraleN',v=>{if(TEAM&&TEAM.frontOffice)TEAM.frontOffice.morale=v;});
+$('edCoins').onchange=e=>{if(!TEAM||!TEAM.frontOffice)return;pushUndo('coins');TEAM.frontOffice.coins=Math.max(0,+e.target.value||0);logChange(teamName(TEAM)+' coins → '+TEAM.frontOffice.coins);renderTeam();};
+$('edPrestige').onchange=e=>{if(!TEAM)return;TEAM.prestigePoints=Math.max(0,+e.target.value||0);logChange(teamName(TEAM)+' prestige → '+TEAM.prestigePoints);};
+document.querySelectorAll('[data-coins]').forEach(b=>b.onclick=()=>{if(!TEAM||!TEAM.frontOffice)return;pushUndo('coins');TEAM.frontOffice.coins=+b.dataset.coins;logChange(teamName(TEAM)+' coins → '+b.dataset.coins);renderTeam();toast(b.dataset.coins+' coins');});
+$('coinsPlus').onclick=()=>{if(!TEAM||!TEAM.frontOffice)return;pushUndo('coins');TEAM.frontOffice.coins=(TEAM.frontOffice.coins||0)+1000;logChange(teamName(TEAM)+' coins +1000 → '+TEAM.frontOffice.coins);renderTeam();};
+$('btnMaxFac').onclick=()=>{if(!TEAM||!TEAM.frontOffice)return;pushUndo('facilities');(TEAM.frontOffice.facilities||[]).forEach(f=>{f.tier=4;f.condition=5;});logChange(teamName(TEAM)+' facilities → tier 4');renderTeam();};
 $('plMax').onclick=()=>{if(PLAYER){pushUndo('max player');maxPlayer(PLAYER);logChange('Maxed '+PLAYER.fn+' '+PLAYER.ln);renderPlayer();renderRoster();}};
 $('plHeal').onclick=()=>{if(PLAYER){pushUndo('heal');healPlayer(PLAYER);logChange('Healed '+PLAYER.fn+' '+PLAYER.ln);renderRoster();}};
 $('plSkills').onclick=()=>{if(PLAYER){pushUndo('skills');(PLAYER.skills||[]).forEach(s=>{s.level=3;s.equipped=true;});logChange(PLAYER.fn+' '+PLAYER.ln+' skills → lvl 3');}};
@@ -613,15 +775,18 @@ function cleanLineups(team,pid){
   if(Array.isArray(team.scoringOptions))team.scoringOptions.forEach(e=>{if(e&&e.pid===pid)e.pid=-1;});
 }
 function clonePlayer(p){
-  const lg=league();
-  let maxId=lg.meta&&lg.meta.uPID?lg.meta.uPID:0;
-  lg.teams.forEach(t=>(t.roster||[]).forEach(x=>{if(x.id>maxId)maxId=x.id;}));
-  (lg.freeAgents||[]).forEach(x=>{if(x.id>maxId)maxId=x.id;});
+  let maxId=0;
+  findEveryPlayer().forEach(e=>{if(+e.p.id>maxId)maxId=+e.p.id;});
+  DATA.seasonLeagues.forEach(lg=>{if(lg.meta&&+lg.meta.uPID>maxId)maxId=+lg.meta.uPID;});
   const c=JSON.parse(JSON.stringify(p));
-  c.id=maxId+1; c.tid=TEAM.id; c.league=LI;
-  if(c.contract){c.contract.tid=TEAM.id;c.contract.pid=c.id;}
-  if(lg.meta)lg.meta.uPID=c.id;
-  TEAM.roster.push(c);
+  c.id=maxId+1;
+  const destTeam=(PLAYER_CTX&&PLAYER_CTX.team)?PLAYER_CTX.team:TEAM;
+  const dest=(PLAYER_CTX&&PLAYER_CTX.arr)?PLAYER_CTX.arr:(TEAM?TEAM.roster:null);
+  c.league=PLAYER_CTX?PLAYER_CTX.li:LI;
+  if(destTeam){c.tid=destTeam.id;if(c.contract){c.contract.tid=destTeam.id;c.contract.pid=c.id;}}
+  if(dest)dest.push(c);
+  else{const lg=DATA.seasonLeagues[c.league];lg.freeAgents=lg.freeAgents||[];lg.freeAgents.push(c);}
+  const mlg=DATA.seasonLeagues[c.league]; if(mlg&&mlg.meta)mlg.meta.uPID=c.id;
   return c;
 }
 /* ---------- league editor (auto-discovered fields) ---------- */
@@ -697,7 +862,7 @@ $('plNil').onchange=e=>{if(PLAYER&&PLAYER.contract)PLAYER.contract.nil=+e.target
 $('plGpa').onchange=e=>{if(PLAYER&&PLAYER.season)PLAYER.season.gpa=+e.target.value;};
 $('plXP').onclick=()=>{if(PLAYER&&PLAYER.season){pushUndo('xp');PLAYER.season.xp=(PLAYER.season.xp||[]).map(v=>v+999);logChange(PLAYER.fn+' '+PLAYER.ln+' +999 XP');renderPlayerExtra();}};
 $('plAP').onclick=()=>{if(PLAYER&&PLAYER.season){pushUndo('ap');PLAYER.season.ap=(PLAYER.season.ap||[]).map(v=>v+10);logChange(PLAYER.fn+' '+PLAYER.ln+' +10 AP');renderPlayerExtra();}};
-$('plClone').onclick=()=>{if(PLAYER){pushUndo('clone');const c=clonePlayer(PLAYER);logChange('Cloned '+c.fn+' '+c.ln+' (new id '+c.id+') onto '+teamName(TEAM));renderTeam();renderRoster();renderTradeBack();toast('Cloned. Roster now '+TEAM.roster.length);}};
+$('plClone').onclick=()=>{if(PLAYER){pushUndo('clone');const c=clonePlayer(PLAYER);logChange('Cloned '+c.fn+' '+c.ln+' (new id '+c.id+') into '+(PLAYER_CTX?PLAYER_CTX.poolLabel:(TEAM?teamName(TEAM):'free agents')));renderTeam();renderRoster();renderTradeBack();renderFind($('findSearch').value,$('findPool').value,true);toast('Cloned '+c.fn+' '+c.ln);}};
 /* ---------- GitHub publish (Git Data API) ---------- */
 function ghCfg(){
   return {owner:$('ghOwner').value.trim(),repo:$('ghRepo').value.trim(),branch:$('ghBranch').value.trim()||'main',token:$('ghToken').value.trim()};
