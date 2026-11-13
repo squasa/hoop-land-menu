@@ -1,7 +1,7 @@
 // Regression test: editor must find + edit ANY player, not just team rosters.
 // Covers HS showcase (starTeams), draftClass, freeAgents, MyPlayer (season.playerId),
 // and standalone player / single-league files. Run: node tests/any-player.test.mjs
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert';
 
@@ -111,5 +111,13 @@ assert.ok(!soloOut.seasonLeagues, 'no wrapper leaked into export');
 run(`loadText(${JSON.stringify(JSON.stringify(save.seasonLeagues[0]))}, 'L')`);
 assert.ok(run('findEveryPlayer().some(e=>e.p.id===9001)'), 'single-league file finds showcase kid');
 assert.equal(JSON.parse(run('rawSave()')).leagueName, 'College', 'single-league export keeps league shape');
+
+// Deploy guard: GitHub Pages must serve this repo as plain static files.
+// Regression: the legacy Jekyll build for c3cb33c stuck in "building"/errored,
+// so the live site kept serving the pre-feature index.html. A root .nojekyll
+// file makes Pages skip Jekyll entirely (huge save files in the repo root
+// choke it). If this file ever disappears, the feature can silently un-ship.
+assert.ok(existsSync(new URL('../.nojekyll', import.meta.url)),
+  'repo root has .nojekyll so GitHub Pages deploys index.html as-is');
 
 console.log('PASS any-player: showcase/draft/FA/MyPlayer/standalone all findable + editable');
