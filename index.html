@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hoop Land Save Menu — instant editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#100f0e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23c1272d'/%3E%3Cpath d='M2 16h28M16 2v28M6 7c6 5 14 5 20 0M6 25c6-5 14-5 20 0' stroke='%23100f0e' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+<title>Hoop Land Ultimate Trainer — save editor</title>
 <meta name="description" content="Paste or drop a Hoop Land save, edit coins, rosters, facilities and more, then copy the raw save straight back into the game. 100% in your browser.">
 <style>
   :root{
@@ -84,11 +86,114 @@
   footer{max-width:1180px;margin:0 auto;padding:0 16px 30px;color:var(--dim);font-size:12.5px}
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#000;border:1px solid var(--green);
     color:var(--ink);padding:10px 16px;border-radius:8px;font-size:13.5px;display:none;z-index:99;max-width:92vw;text-align:center}
+
+  /* ---------- Ultimate Trainer / mobile-first refinement ---------- */
+  :focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+  .quicknav{display:flex;gap:2px;overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;margin-bottom:14px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .quicknav::-webkit-scrollbar{display:none}
+  .quicknav a{flex:0 0 auto;color:var(--ink);text-decoration:none;font-weight:700;font-size:13px;padding:10px 12px;border-radius:7px}
+  .quicknav a:hover{background:var(--panel2);color:var(--gold)}
+  section.card{scroll-margin-top:110px}
+  .tabs{display:flex;gap:4px;overflow-x:auto;margin:14px -4px 12px;padding:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-bottom:2px solid var(--line)}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabbtn{flex:0 0 auto;background:transparent;border:none;border-bottom:3px solid transparent;color:var(--dim);font-weight:800;font-size:13.5px;padding:11px 12px;min-height:44px}
+  .tabbtn.sel{color:var(--ink);border-bottom-color:var(--red)}
+  .formgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px 14px}
+  .fld label{display:block;font-size:11.5px;color:var(--dim);font-weight:700;margin-bottom:4px}
+  .fld input,.fld select{width:100%}
+  .fld.check{display:flex;align-items:center;gap:10px;padding-top:20px}
+  .fld.check label{margin:0}
+  .fld.check input{width:22px;height:22px;accent-color:var(--red)}
+  .hintlab{color:var(--gold);font-weight:700;text-transform:none;letter-spacing:0}
+  .minihead{font-size:14px;margin:20px 0 8px;color:var(--ink)}
+  .potSummary{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .potSummary .statbox{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 14px;min-width:118px}
+  .potSummary .statbox small{display:block;color:var(--dim);font-size:11px;font-weight:700}
+  .potSummary .statbox b{font-family:var(--mono);font-size:19px}
+  .potSummary .statbox b.goldv{color:var(--gold)}
+  .skillrow{display:grid;grid-template-columns:64px 92px 1fr 86px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+  .skillrow .sid{font-family:var(--mono);font-weight:800}
+  .skillrow label{font-size:12px;color:var(--dim);font-weight:700;display:flex;gap:6px;align-items:center}
+  .skillrow input[type=checkbox]{width:20px;height:20px;accent-color:var(--red)}
+  details.advBox{margin-top:14px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--panel2)}
+  details.advBox summary{cursor:pointer;font-weight:700;font-size:13.5px;min-height:32px}
+  .insp details{margin:4px 0 4px 10px;border-left:2px solid var(--line);padding-left:10px}
+  .insp summary{cursor:pointer;font-weight:700;font-size:13px;padding:7px 0;color:var(--ink)}
+  .insp summary .cnt{color:var(--dim);font-family:var(--mono);font-weight:400;font-size:11.5px}
+  .insp .leaf{display:flex;gap:8px;align-items:center;padding:5px 0 5px 10px;flex-wrap:wrap}
+  .insp .leaf label{font-family:var(--mono);font-size:12px;color:var(--dim);min-width:150px;overflow-wrap:anywhere}
+  .insp .leaf input[type=text],.insp .leaf input[type=number]{flex:1;min-width:130px}
+  .insp .leaf input[type=color]{width:52px;height:38px;padding:2px;background:#121110;border:1px solid var(--line);border-radius:6px}
+  .insp .leaf input[type=checkbox]{width:22px;height:22px;accent-color:var(--red)}
+  .insp .arrvals{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+  .insp .arrvals input{width:84px}
+  .flatrow{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .flatrow code{font-size:11.5px;color:var(--gold);min-width:210px;overflow-wrap:anywhere}
+  .flatrow input{flex:1;min-width:120px}
+  #mobileBar{display:none}
+  .gapbadge{font-family:var(--mono);font-size:10.5px;color:var(--gold)}
+  @media(max-width:900px){
+    main{padding:12px 10px 110px}
+    header{padding:8px 10px}
+    .brand{font-size:17px}
+    .hgroup{margin-left:0;width:100%}
+    .hgroup .btn{flex:1;min-height:44px}
+    input,select,textarea{font-size:16px!important} /* stops iOS zoom-on-focus */
+    .btn{min-height:44px}
+    .btn.sm{min-height:40px}
+    .field{flex:1 1 100%}
+    .field select,.field input{min-width:0;width:100%}
+    #teamCard{margin-left:0;text-align:left;width:100%}
+    .preset{grid-template-columns:1fr 1fr}
+    .row label{width:100%}
+    .attrGrid{grid-template-columns:1fr}
+    .attr{min-height:44px}
+    .attr input[type=range]{height:32px}
+    .formgrid{grid-template-columns:1fr 1fr}
+    table{font-size:12.5px}
+    th,td{padding:8px 6px}
+    tbody tr{min-height:44px}
+    #mobileBar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:80;background:#100f0e;border-top:3px solid var(--red);padding:8px 8px calc(8px + env(safe-area-inset-bottom));gap:8px}
+    #mobileBar button,#mobileBar a{flex:1;min-height:48px;display:flex;align-items:center;justify-content:center;background:var(--red);color:#fff;border:none;border-radius:8px;font-weight:800;font-size:13.5px;text-decoration:none;padding:10px 6px;text-align:center}
+    #mobileBar button+button,#mobileBar a{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+    .toast{bottom:84px}
+    section.card{padding:14px 12px;border-radius:8px}
+    .insp .leaf label{min-width:110px}
+    .flatrow code{min-width:150px}
+    .skillrow{grid-template-columns:54px 82px 1fr 74px}
+  }
+  @media(max-width:520px){
+    .preset{grid-template-columns:1fr}
+    .formgrid{grid-template-columns:1fr}
+    #findBody td:nth-child(2),#findBody th:nth-child(2){max-width:120px;overflow:hidden;text-overflow:ellipsis}
+    .brand small{display:none}
+  }
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+  /* overflow guards (found in mobile screenshot pass) */
+  .row>*{min-width:0}
+  .row input[type=range]{flex:1 1 110px}
+  .row .num{flex:0 0 84px;width:84px}
+  .hintlab{flex:1 1 100%}
+  #xpGrid .fld>div{display:flex;gap:6px}
+  #xpGrid input{flex:1;min-width:0;width:auto}
+  #tab-potential .fld input{width:100%}
+  @media(max-width:900px){
+    #mobileBar button,#mobileBar a{flex:1 1 0;min-width:0;font-size:12px;padding:10px 3px;white-space:normal;line-height:1.2}
+    .potSummary .statbox{flex:1 1 30%;min-width:0}
+    .fld input{width:100%}
+  }
+
+  /* grid min-content fix: wide tables must scroll inside their card, never widen the page */
+  .grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .grid>*,section.card,.picker>*{min-width:0}
+  section.card{overflow:hidden}
+  @media(max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">HOOP LAND <span>SAVE MENU</span><small>instant editor — runs 100% in your browser, nothing uploads</small></div>
+  <div class="brand">HOOP LAND <span>ULTIMATE TRAINER</span><small>every player setting in your save — 100% in your browser, nothing uploads</small></div>
   <div class="hgroup">
     <button class="btn" id="btnUndo" disabled>Undo</button>
     <button class="btn" id="btnReset" disabled>Reset save</button>
@@ -122,6 +227,9 @@
   </div>
 
   <div id="app">
+    <nav class="quicknav" aria-label="Sections">
+      <a href="#findCard">Find player</a><a href="#presetsCard">Presets</a><a href="#teamCardSec">Team</a><a href="#rosterCard">Roster</a><a href="#playerCard">Player</a><a href="#stealCard">Steal / trade</a><a href="#leagueCard">League</a><a href="#exportCard">Export</a>
+    </nav>
     <div class="picker">
       <div class="field"><label>LEAGUE</label><select id="leagueSel"></select></div>
       <div class="field"><label>YOUR TEAM (search)</label><input type="text" id="teamSearch" placeholder="e.g. Stanford" list="teamList"><datalist id="teamList"></datalist></div>
@@ -156,7 +264,7 @@
     </section>
 
     <div class="grid">
-      <section class="card">
+      <section class="card" id="presetsCard">
         <h2>One-tap presets</h2>
         <p class="sub">Apply to the selected team instantly. Everything is undoable.</p>
         <div class="preset">
@@ -168,10 +276,12 @@
           <button data-preset="heal"><b>HEAL &amp; REST</b><span>clear all injuries · condition &amp; morale 100</span></button>
           <button data-preset="staff"><b>MAX COACHING STAFF</b><span>development / motivation / leadership 20/20</span></button>
           <button data-preset="young"><b>YOUNG CORE</b><span>everyone on the roster turns 18</span></button>
+          <button data-preset="realize"><b>REALIZE POTENTIAL</b><span>roster current ratings rise to their ceilings</span></button>
+          <button data-preset="ceil2"><b>CEILINGS +2</b><span>every potential ceiling +2 (max 20)</span></button>
         </div>
       </section>
 
-      <section class="card">
+      <section class="card" id="teamCardSec">
         <h2>Team editor</h2>
         <p class="sub">Front office for the selected team. Changes apply as you type.</p>
         <div class="row"><label>Coins</label><input class="num" type="number" id="edCoins" min="0" step="1">
@@ -182,11 +292,12 @@
         <div class="row"><label>Prestige pts</label><input class="num" type="number" id="edPrestige" min="0" step="1"></div>
         <div class="row" style="align-items:start"><label>Facilities</label><div class="fac" id="facBox"></div></div>
         <div class="row"><button class="btn sm" id="btnMaxFac">Max all facilities (tier 4)</button></div>
+        <details class="advBox"><summary>All team fields (advanced — tier, rank, status, staff, lineups…)</summary><div id="teamInspector"></div></details>
       </section>
     </div>
 
     <div class="grid">
-      <section class="card">
+      <section class="card" id="rosterCard">
         <h2>Roster</h2>
         <p class="sub">Click a player to edit. OVR = average attribute. Drag nothing, it's instant.</p>
         <div style="overflow:auto"><table><thead><tr><th>#</th><th>Player</th><th>Age</th><th>OVR</th><th>Pot</th><th>Cond</th><th></th></tr></thead><tbody id="rosterBody"></tbody></table></div>
@@ -196,34 +307,177 @@
         <h2>Player editor</h2>
         <p class="sub" id="playerSub">Select a player from the roster — or find anyone (showcase, draft class, free agents…) above.</p>
         <div id="playerEditor" style="display:none">
-          <div class="row">
+          <div class="row actionrow">
             <button class="btn sm gold" id="plMax">Max this player (20/20)</button>
+            <button class="btn sm" id="plGoat">GOAT mode (max + skills + XP)</button>
             <button class="btn sm" id="plHeal">Heal + 100 cond/morale</button>
             <button class="btn sm" id="plSkills">Skills → lvl 3</button>
             <button class="btn sm" id="plClone">Clone player</button>
           </div>
-          <div class="row"><label>Age</label><input class="num" type="number" id="plAge" min="14" max="60">
-            <label style="width:auto">Height (in)</label><input class="num" type="number" id="plHt" min="60" max="96">
-            <label style="width:auto">Potential</label><input class="num" type="number" id="plPot" min="0" max="10"></div>
-          <div class="row"><label>Jersey #</label><input class="num" type="number" id="plNum" min="0" max="99">
-            <label style="width:auto">Weight (lb)</label><input class="num" type="number" id="plWt" min="100" max="400">
-            <label style="width:auto">Regress age</label><input class="num" type="number" id="plReg" min="18" max="60"></div>
-          <div class="row"><label>Contract yrs</label><input class="num" type="number" id="plYrs" min="0" max="10">
-            <label style="width:auto">Salary</label><input class="num" type="number" id="plSal" min="0">
-            <label style="width:auto">NIL $</label><input class="num" type="number" id="plNil" min="0">
-            <label style="width:auto">GPA raw</label><input class="num" type="number" id="plGpa" min="0"></div>
-          <div class="row"><button class="btn sm" id="plXP">Grant +999 XP</button><button class="btn sm" id="plAP">Grant +10 AP</button>
-            <span id="plXpInfo" style="font-family:var(--mono);font-size:11.5px;color:var(--dim)"></span></div>
-          <p class="sub" style="margin:10px 0 6px">Slider = current rating · number = ceiling. Both 0–20.</p>
-          <div class="attrGrid" id="attrGrid"></div>
-          <p class="sub" style="margin:12px 0 6px">Tendencies (−5 to +5):</p>
-          <div class="attrGrid" id="tendGrid"></div>
+          <div class="tabs" role="tablist">
+            <button type="button" class="tabbtn sel" data-tab="overview" onclick="showPlayerTab('overview',this)">Overview</button>
+            <button type="button" class="tabbtn" data-tab="ratings" onclick="showPlayerTab('ratings',this)">Ratings</button>
+            <button type="button" class="tabbtn" data-tab="potential" onclick="showPlayerTab('potential',this)">Potential</button>
+            <button type="button" class="tabbtn" data-tab="skills" onclick="showPlayerTab('skills',this)">Skills</button>
+            <button type="button" class="tabbtn" data-tab="body" onclick="showPlayerTab('body',this)">Body &amp; looks</button>
+            <button type="button" class="tabbtn" data-tab="season" onclick="showPlayerTab('season',this)">Contract &amp; season</button>
+            <button type="button" class="tabbtn" data-tab="stats" onclick="showPlayerTab('stats',this)">Stats</button>
+            <button type="button" class="tabbtn" data-tab="advanced" onclick="showPlayerTab('advanced',this)">All fields</button>
+          </div>
+
+          <div class="tabpane" id="tab-overview">
+            <div class="formgrid">
+              <div class="fld"><label>First name</label><input type="text" id="plFn"></div>
+              <div class="fld"><label>Last name</label><input type="text" id="plLn"></div>
+              <div class="fld"><label>Tag / nickname</label><input type="text" id="plTag"></div>
+              <div class="fld"><label>Archetype (arc)</label><input type="text" id="plArc" list="arcList"><datalist id="arcList"></datalist></div>
+              <div class="fld"><label>Home</label><input type="text" id="plHome"></div>
+              <div class="fld"><label>Country (ctry)</label><input type="text" id="plCtry" maxlength="3"></div>
+              <div class="fld"><label>Age</label><input type="number" id="plAge" min="12" max="99"></div>
+              <div class="fld"><label>Experience (yrs)</label><input type="number" id="plYrsExp" min="0" max="40"></div>
+              <div class="fld"><label>Height (inches) <span id="plHtFt" class="hintlab"></span></label><input type="number" id="plHt" min="60" max="96"></div>
+              <div class="fld"><label>Weight (lb)</label><input class="num" type="number" id="plWt" min="80" max="450"></div>
+              <div class="fld"><label>Jersey #</label><input class="num" type="number" id="plNum" min="0" max="99"></div>
+              <div class="fld"><label>Gender (0 in this save)</label><input type="number" id="plGender" min="0" max="2"></div>
+              <div class="fld"><label>Position (pos 0–8)</label><input type="number" id="plPos" min="0" max="8"></div>
+              <div class="fld"><label>Team position (teamPos)</label><input type="number" id="plTeamPos" min="0" max="8"></div>
+              <div class="fld"><label>Position rank (posRnk)</label><input type="number" id="plPosRnk" min="0" max="15"></div>
+              <div class="fld"><label>Lineup slot (linePos, −1 = none)</label><input type="number" id="plLinePos" min="-1" max="20"></div>
+              <div class="fld"><label>Primary (pri 0–11)</label><input type="number" id="plPri" min="0" max="11"></div>
+              <div class="fld"><label>Secondary (sec 0–10)</label><input type="number" id="plSec" min="0" max="10"></div>
+              <div class="fld"><label>Usage</label><input type="number" id="plUsage" min="0" max="100"></div>
+              <div class="fld"><label>Status</label><input type="number" id="plStatus" min="0" max="10"></div>
+              <div class="fld"><label>Team ID (tid)</label><input type="number" id="plTid"></div>
+              <div class="fld"><label>League #</label><input type="number" id="plLeague" min="0" max="9"></div>
+            </div>
+            <p class="sub" style="margin:12px 0 6px">Rotation minutes — the 6 values in <span style="font-family:var(--mono)">minutes[]</span>:</p>
+            <div class="formgrid" id="minutesGrid"></div>
+          </div>
+
+          <div class="tabpane" id="tab-ratings" hidden>
+            <div class="row">
+              <button class="btn sm" onclick="bumpRatings(1)">All current +1</button>
+              <button class="btn sm" onclick="bumpRatings(2)">+2</button>
+              <button class="btn sm" onclick="bumpRatings(-1)">−1</button>
+              <label style="width:auto">Set all current to</label><input class="num" type="number" id="setAllCur" min="0" max="20" value="15" style="width:70px">
+              <button class="btn sm" onclick="setAllCurrent(+document.getElementById('setAllCur').value||0)">Apply</button>
+            </div>
+            <p class="sub" style="margin:8px 0 6px">Slider = current rating · number = ceiling (potential cap). Both 0–20. Gap = room to grow.</p>
+            <div class="attrGrid" id="attrGrid"></div>
+            <p class="sub" style="margin:14px 0 6px">Tendencies (−5 to +5) — presets set the whole profile:</p>
+            <div class="row">
+              <button class="btn sm" onclick="applyTendPreset('shooter')">Sharpshooter</button>
+              <button class="btn sm" onclick="applyTendPreset('slasher')">Slasher</button>
+              <button class="btn sm" onclick="applyTendPreset('playmaker')">Playmaker</button>
+              <button class="btn sm" onclick="applyTendPreset('lockdown')">Lockdown</button>
+              <button class="btn sm" onclick="applyTendPreset('big')">Big man</button>
+              <button class="btn sm" onclick="applyTendPreset('zero')">Zero all</button>
+            </div>
+            <div class="attrGrid" id="tendGrid"></div>
+          </div>
+
+          <div class="tabpane" id="tab-potential" hidden>
+            <div class="potSummary" id="potSummary"></div>
+            <div class="row"><label>Potential (pot)</label><input type="range" id="plPotR" min="0" max="10" step="1"><input class="num" type="number" id="plPot" min="0" max="10"><span class="hintlab" id="potWord"></span></div>
+            <div class="row"><label>Regression age</label><input type="range" id="plRegR" min="25" max="50" step="1"><input class="num" type="number" id="plReg" min="18" max="60"><span class="hintlab">higher = peaks later / declines later</span></div>
+            <div class="row">
+              <button class="btn sm gold" onclick="potentialPreset('youngstar')">Young star (18 · pot 10 · ceilings 20)</button>
+              <button class="btn sm" onclick="potentialPreset('latebloomer')">Late bloomer</button>
+              <button class="btn sm" onclick="potentialPreset('noregress')">No regression (age 48)</button>
+              <button class="btn sm" onclick="potentialPreset('realize')">Realize potential now</button>
+            </div>
+            <div class="row"><label>All ceilings</label>
+              <button class="btn sm" onclick="ceilingsSet(15)">15</button><button class="btn sm" onclick="ceilingsSet(18)">18</button><button class="btn sm" onclick="ceilingsSet(20)">20</button>
+              <button class="btn sm" onclick="ceilingsBump(2)">+2</button><button class="btn sm" onclick="ceilingsBump(-2)">−2</button>
+              <button class="btn sm" onclick="realizePotential(PLAYER,2);afterPlayerEdit('near peak')">Near peak (ceiling −2)</button>
+            </div>
+            <div class="formgrid">
+              <div class="fld"><label>Progression progress (season.progress 0–3)</label><input type="number" id="plProgress" min="0" max="10"></div>
+              <div class="fld"><label>Training focus (season.focus)</label><input type="number" id="plFocus" min="0" max="5"></div>
+              <div class="fld"><label>Regimen (season.regimen)</label><input type="number" id="plRegimen" min="0" max="5"></div>
+              <div class="fld"><label>Legacy points</label><input type="number" id="plLegacyPts" min="0"></div>
+            </div>
+            <p class="sub" style="margin:12px 0 6px">XP buckets <span style="font-family:var(--mono)">season.xp[0..4]</span> and AP <span style="font-family:var(--mono)">season.ap[0..4]</span> — edit each, or grant in bulk:</p>
+            <div class="formgrid" id="xpGrid"></div>
+            <div class="row"><button class="btn sm" id="plXP">Grant +999 XP (all buckets)</button><button class="btn sm" id="plAP">Grant +10 AP (all buckets)</button>
+              <span id="plXpInfo" style="font-family:var(--mono);font-size:11.5px;color:var(--dim)"></span></div>
+          </div>
+
+          <div class="tabpane" id="tab-skills" hidden>
+            <div class="row">
+              <button class="btn sm gold" onclick="skillsBulk('max')">All skills lvl 3 + equipped</button>
+              <button class="btn sm" onclick="skillsBulk('xp')">+1000 XP every skill</button>
+              <button class="btn sm" onclick="skillsBulk('equip')">Equip all</button>
+              <button class="btn sm" onclick="skillsBulk('unequip')">Unequip all</button>
+              <button class="btn sm" onclick="skillsBulk('reset')">Reset skills</button>
+            </div>
+            <div id="skillsGrid"></div>
+          </div>
+
+          <div class="tabpane" id="tab-body" hidden>
+            <p class="sub">Appearance codes come straight from the save (hair/facial-hair IDs, hex colors without #). Color boxes write the same hex.</p>
+            <div id="appearanceBox"></div>
+            <h3 class="minihead">Game outfits (accessories)</h3>
+            <div class="row"><label>Outfit</label><select id="accSel"></select><button class="btn sm" onclick="copyOutfitToAll('accessories')">Copy this outfit to all</button></div>
+            <div id="accessoriesBox"></div>
+            <h3 class="minihead">Suits</h3>
+            <div class="row"><label>Suit</label><select id="suitSel"></select><button class="btn sm" onclick="copyOutfitToAll('suits')">Copy this suit to all</button></div>
+            <div id="suitsBox"></div>
+            <h3 class="minihead">Hometown location (loc)</h3>
+            <div id="locBox"></div>
+          </div>
+
+          <div class="tabpane" id="tab-season" hidden>
+            <h3 class="minihead">Contract</h3>
+            <div class="formgrid">
+              <div class="fld"><label>Years left (yrs)</label><input class="num" type="number" id="plYrs" min="0" max="10"></div>
+              <div class="fld"><label>Salary</label><input class="num" type="number" id="plSal" min="0"></div>
+              <div class="fld"><label>NIL $</label><input class="num" type="number" id="plNil" min="0"></div>
+              <div class="fld"><label>Type</label><input type="number" id="plConType" min="0" max="5"></div>
+              <div class="fld"><label>Option (opt 0–2)</label><input type="number" id="plConOpt" min="0" max="2"></div>
+              <div class="fld"><label>No-trade (noTrd)</label><input type="number" id="plConNoTrd" min="0" max="2"></div>
+              <div class="fld check"><label>Can extend (canExt)</label><input type="checkbox" id="plConCanExt"></div>
+              <div class="fld"><label>Extension years (ext.yrs)</label><input type="number" id="plExtYrs" min="0" max="10"></div>
+              <div class="fld"><label>Extension salary (ext.sal)</label><input type="number" id="plExtSal" min="0"></div>
+              <div class="fld"><label>Extension option (ext.opt)</label><input type="number" id="plExtOpt" min="0" max="2"></div>
+              <div class="fld"><label>Extension no-trade (ext.noTrd)</label><input type="number" id="plExtNoTrd" min="0" max="2"></div>
+            </div>
+            <div class="row"><button class="btn sm" onclick="contractPreset('max')">Max deal (6 yrs)</button><button class="btn sm" onclick="contractPreset('free')">Make free agent (0 yrs / $0)</button><button class="btn sm" onclick="contractPreset('nil')">Big NIL bag (+100000)</button></div>
+            <h3 class="minihead">Season status</h3>
+            <div id="seasonBox"></div>
+            <h3 class="minihead">Injury detail</h3>
+            <div id="injuryBox"></div>
+            <div class="row"><button class="btn sm" onclick="if(PLAYER){pushUndo('heal');healPlayer(PLAYER);afterPlayerEdit('healed');}">Clear injury completely</button></div>
+            <h3 class="minihead">In-game status (gameStatus)</h3>
+            <div id="gameStatusBox"></div>
+            <h3 class="minihead">History &amp; draft</h3>
+            <div id="historyBox"></div>
+            <h3 class="minihead">Career goals</h3>
+            <div id="careerGoalsBox"></div>
+          </div>
+
+          <div class="tabpane" id="tab-stats" hidden>
+            <div class="row">
+              <button class="btn sm" onclick="statsPreset('resetGame')">Reset current-game stats</button>
+              <button class="btn sm" onclick="statsPreset('resetCareer')">Reset career totals</button>
+              <button class="btn sm gold" onclick="statsPreset('legend')">Legend career line (+10000 PTS…)</button>
+            </div>
+            <h3 class="minihead">Current game (gameStats)</h3><div id="gameStatsBox"></div>
+            <h3 class="minihead">Career season totals (careerStats.season)</h3><div id="careerStatsBox"></div>
+            <h3 class="minihead">This season entry (stats)</h3><div id="seasonStatsBox"></div>
+          </div>
+
+          <div class="tabpane" id="tab-advanced" hidden>
+            <p class="sub"> Literally every field on this player in the save file — search any key (try <span style="font-family:var(--mono)">gamesOut</span>, <span style="font-family:var(--mono)">skinC</span>, <span style="font-family:var(--mono)">ext.sal</span>) or browse the tree. Edits write straight to the save object.</p>
+            <div class="row"><input type="text" id="advSearch" placeholder="Search every field name or path…" style="flex:1;min-width:200px" oninput="renderPlayerAdvanced()"></div>
+            <div id="playerInspector"></div>
+          </div>
         </div>
       </section>
     </div>
 
     <div class="grid">
-      <section class="card">
+      <section class="card" id="stealCard">
         <h2>Steal a player</h2>
         <p class="sub">Search every pool in this league — rosters, showcase/star teams, draft class, free agents, retirees — move anyone onto your team. Their old team keeps playing short-handed — that's the point.</p>
         <div class="row"><input type="text" id="stealSearch" placeholder="Search player name…" style="flex:1"></div>
@@ -232,7 +486,7 @@
         <div id="stealResults"><table><thead><tr><th>Player</th><th>Team</th><th>OVR</th><th></th></tr></thead><tbody id="stealBody"></tbody></table></div>
       </section>
 
-      <section class="card">
+      <section class="card" id="exportCard">
         <h2>Export</h2>
         <p class="sub">Copy raw and paste into Hoop Land's import, or download the file. Shortcut: <kbd>Cmd/Ctrl+Shift+C</kbd> copies raw.</p>
         <div class="row">
@@ -276,7 +530,7 @@
     </section>
 
     <div class="grid">
-      <section class="card">
+      <section class="card" id="leagueCard">
         <h2>League sliders, rules &amp; difficulty</h2>
         <p class="sub">For the selected league above. Sliders are 0–100; difficulty/settings are small mode numbers — change carefully, undo works.</p>
         <div class="row"><label>Section</label><select id="lgBucket">
@@ -286,6 +540,12 @@
           <option value="rules">Rules</option>
           <option value="settings">Settings</option>
           <option value="seasonQuick">Season quick toggles</option>
+          <option value="season">Season (ALL fields)</option>
+          <option value="meta">Save meta</option>
+          <option value="coachSettings">Coach settings</option>
+          <option value="career">Career (league)</option>
+          <option value="optimization">Optimization</option>
+          <option value="workshop">Workshop</option>
         </select></div>
         <div id="lgFields"></div>
       </section>
@@ -308,6 +568,12 @@
   </div>
 </main>
 <footer>Every edit happens locally in your browser — no server, no upload, works offline once loaded. Always keep a backup of your original save before importing an edited one. Attribute scale is 0–20, skill max is level 3, facility max is tier 4 (the game's own caps).</footer>
+<nav id="mobileBar" aria-label="Quick actions">
+  <button type="button" onclick="copyRaw()">Copy raw save</button>
+  <button type="button" onclick="downloadSave()">Download</button>
+  <a href="#playerCard">Player</a>
+  <a href="#findCard">Find</a>
+</nav>
 <div class="toast" id="toast"></div>
 <script>
 'use strict';
@@ -333,7 +599,10 @@ function isPlayerObj(p){
 }
 const POOL_LABELS={freeAgents:'Free agents',draftClass:'Draft class',threePointContestants:'3-point contestants',retirees:'Retirees',hallOfFame:'Hall of Fame'};
 const SCAN_SKIP=new Set(['teams','starTeams','freeAgents','draftClass','threePointContestants','retirees','hallOfFame','currentGame','referees','coaches','media','commissioner','records','awards','conferences','divisions','gameballs','courts','contractOffers']);
-function poolEntries(li){
+let poolCache={}, playerIndexCache=null;
+function invalidatePlayerIndex(){poolCache={};playerIndexCache=null;}
+function poolEntries(li){ if(poolCache[li])return poolCache[li]; const out=buildPoolEntries(li); poolCache[li]=out; return out; }
+function buildPoolEntries(li){
   const lg=DATA&&DATA.seasonLeagues?DATA.seasonLeagues[li]:null; if(!lg)return [];
   const out=[], seen=new Set();
   const add=(p,pool,poolLabel,team,arr,teamKind)=>{if(!isPlayerObj(p)||seen.has(p))return;seen.add(p);out.push({p,li,leagueName:lg.leagueName||('League '+(li+1)),pool,poolLabel,team:team||null,arr:arr||null,teamKind:teamKind||'t'});};
@@ -353,7 +622,9 @@ function poolEntries(li){
 }
 function findEveryPlayer(){
   if(!DATA||!DATA.seasonLeagues)return [];
-  const out=[]; DATA.seasonLeagues.forEach((_,li)=>poolEntries(li).forEach(e=>out.push(e))); return out;
+  if(playerIndexCache)return playerIndexCache;
+  const out=[]; DATA.seasonLeagues.forEach((_,li)=>poolEntries(li).forEach(e=>out.push(e)));
+  playerIndexCache=out; return out;
 }
 function myPlayers(){
   if(!DATA||!DATA.seasonLeagues)return [];
@@ -371,10 +642,221 @@ function analyzeLine(p){
   const s=ATTRS.map(a=>[a,(p.attributes[a]||[0])[0]]).sort((x,y)=>y[1]-x[1]);
   return ' · best: '+s.slice(0,3).map(x=>x[0]+' '+x[1]).join(', ')+' · weakest: '+s.slice(-2).map(x=>x[0]+' '+x[1]).join(', ');
 }
+
+/* ---------- ultimate trainer helpers ---------- */
+function clampNum(v,lo,hi){v=+v;if(isNaN(v))v=lo;return Math.max(lo,Math.min(hi,v));}
+function ceilAvg(p){if(!p||!p.attributes)return 0;const v=ATTRS.map(a=>(p.attributes[a]||[0,0])[1]||0);return Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10;}
+function setCeilings(p,val){if(!p||!p.attributes)return;val=clampNum(val,0,20);ATTRS.forEach(a=>{if(!Array.isArray(p.attributes[a]))p.attributes[a]=[0,0];p.attributes[a][1]=val;if(p.attributes[a][0]>val)p.attributes[a][0]=val;});}
+function bumpCeilings(p,d){if(!p||!p.attributes)return;ATTRS.forEach(a=>{if(!Array.isArray(p.attributes[a]))p.attributes[a]=[0,0];p.attributes[a][1]=clampNum((p.attributes[a][1]||0)+d,0,20);if(p.attributes[a][0]>p.attributes[a][1])p.attributes[a][0]=p.attributes[a][1];});}
+function realizePotential(p,gap){if(!p||!p.attributes)return;gap=gap||0;ATTRS.forEach(a=>{if(!Array.isArray(p.attributes[a]))p.attributes[a]=[0,0];p.attributes[a][0]=clampNum((p.attributes[a][1]||0)-gap,0,20);});}
+function potentialPreset(name){
+  if(!PLAYER)return; pushUndo('potential '+name); const p=PLAYER;
+  if(name==='youngstar'){p.age=18;p.pot=10;p.regressionAge=40;setCeilings(p,20);if(p.season){p.season.progress=3;}}
+  if(name==='latebloomer'){p.pot=10;p.regressionAge=42;bumpCeilings(p,4);if(p.season)p.season.progress=3;}
+  if(name==='noregress'){p.regressionAge=48;}
+  if(name==='realize'){realizePotential(p,0);}
+  logChange('Potential ('+name+'): '+p.fn+' '+p.ln+' pot '+p.pot+' · ceilings avg '+ceilAvg(p)+' · regression '+p.regressionAge);
+  afterPlayerEdit('potential set');
+}
+function ceilingsSet(v){if(!PLAYER)return;pushUndo('ceilings');setCeilings(PLAYER,v);logChange(PLAYER.fn+' '+PLAYER.ln+' ceilings → '+clampNum(v,0,20));afterPlayerEdit('ceilings '+v);}
+function ceilingsBump(d){if(!PLAYER)return;pushUndo('ceilings');bumpCeilings(PLAYER,d);logChange(PLAYER.fn+' '+PLAYER.ln+' ceilings '+(d>0?'+':'')+d);afterPlayerEdit('ceilings updated');}
+function bumpRatings(d){if(!PLAYER)return;pushUndo('ratings');ATTRS.forEach(a=>{PLAYER.attributes[a][0]=clampNum((PLAYER.attributes[a][0]||0)+d,0,PLAYER.attributes[a][1]||20);});afterPlayerEdit('ratings '+(d>0?'+':'')+d);}
+function setAllCurrent(v){if(!PLAYER)return;pushUndo('ratings');v=clampNum(v,0,20);ATTRS.forEach(a=>{PLAYER.attributes[a][0]=Math.min(v,PLAYER.attributes[a][1]||20);});afterPlayerEdit('ratings set to '+v);}
+const TEND_PRESETS={
+  shooter:{dunk:-2,floater:2,hook:-3,post:-3,twoPoint:3,threePoint:5,pumpFake:4,fades:3,pass:0,lob:-2,cross:3,spin:1,step:5,offReb:-2,runPlay:2,defReb:0,takeCharge:0,stealOnBall:1,stealOffBall:2,block:-1},
+  slasher:{dunk:5,floater:4,hook:-2,post:-1,twoPoint:3,threePoint:-1,pumpFake:2,fades:-1,pass:1,lob:3,cross:5,spin:4,step:4,offReb:3,runPlay:1,defReb:1,takeCharge:0,stealOnBall:2,stealOffBall:2,block:0},
+  playmaker:{dunk:0,floater:3,hook:-3,post:-3,twoPoint:1,threePoint:2,pumpFake:3,fades:0,pass:5,lob:5,cross:5,spin:3,step:3,offReb:-3,runPlay:5,defReb:1,takeCharge:1,stealOnBall:3,stealOffBall:3,block:-2},
+  lockdown:{dunk:-1,floater:0,hook:-2,post:0,twoPoint:0,threePoint:0,pumpFake:0,fades:0,pass:1,lob:-1,cross:1,spin:0,step:1,offReb:2,runPlay:2,defReb:4,takeCharge:5,stealOnBall:5,stealOffBall:5,block:4},
+  big:{dunk:4,floater:-2,hook:5,post:5,twoPoint:1,threePoint:-4,pumpFake:2,fades:2,pass:-1,lob:-2,cross:-3,spin:2,step:-2,offReb:5,runPlay:0,defReb:5,takeCharge:2,stealOnBall:-1,stealOffBall:0,block:5}
+};
+function applyTendPreset(name){
+  if(!PLAYER)return; pushUndo('tendencies');
+  if(!PLAYER.tendencies)PLAYER.tendencies={};
+  if(name==='zero')Object.keys(PLAYER.tendencies).forEach(k=>PLAYER.tendencies[k]=0);
+  else Object.assign(PLAYER.tendencies,TEND_PRESETS[name]||{});
+  logChange(PLAYER.fn+' '+PLAYER.ln+' tendencies → '+name); afterPlayerEdit('tendencies: '+name);
+}
+function skillsBulk(mode){
+  if(!PLAYER)return; pushUndo('skills');
+  (PLAYER.skills||[]).forEach(sk=>{
+    if(mode==='max'){sk.level=3;sk.equipped=true;}
+    if(mode==='xp')sk.xp=(sk.xp||0)+1000;
+    if(mode==='equip')sk.equipped=true;
+    if(mode==='unequip')sk.equipped=false;
+    if(mode==='reset'){sk.level=0;sk.xp=0;sk.equipped=false;}
+  });
+  logChange(PLAYER.fn+' '+PLAYER.ln+' skills: '+mode); afterPlayerEdit('skills updated');
+}
+function contractPreset(mode){
+  if(!PLAYER)return; pushUndo('contract'); if(!PLAYER.contract)PLAYER.contract={};
+  const c=PLAYER.contract;
+  if(mode==='max'){c.yrs=6;}
+  if(mode==='free'){c.yrs=0;c.sal=0;c.nil=0;}
+  if(mode==='nil'){c.nil=(c.nil||0)+100000;}
+  logChange(PLAYER.fn+' '+PLAYER.ln+' contract: '+mode); afterPlayerEdit('contract updated');
+}
+const STAT_KEYS=['GP','GS','DNP','INJ','W','L','PM','POS','PTS','FGM','FGA','TPM','TPA','FTM','FTA','REB','ORB','AST','STL','BLK','TO','PF','GW','DD','TD','POTG'];
+function statsPreset(mode){
+  if(!PLAYER)return; pushUndo('stats');
+  const zero=o=>{if(!o)return;STAT_KEYS.forEach(k=>{if(typeof o[k]==='number')o[k]=0;});};
+  if(mode==='resetGame')zero(PLAYER.gameStats);
+  if(mode==='resetCareer'&&PLAYER.careerStats)Object.values(PLAYER.careerStats).forEach(zero);
+  if(mode==='legend'&&PLAYER.careerStats&&PLAYER.careerStats.season){
+    const o=PLAYER.careerStats.season;
+    o.PTS=(o.PTS||0)+10000;o.REB=(o.REB||0)+4000;o.AST=(o.AST||0)+4000;o.STL=(o.STL||0)+800;o.BLK=(o.BLK||0)+800;o.GP=(o.GP||0)+200;o.W=(o.W||0)+150;
+  }
+  logChange(PLAYER.fn+' '+PLAYER.ln+' stats: '+mode); afterPlayerEdit('stats updated');
+}
+function goatPlayer(p){
+  maxPlayer(p);
+  (p.skills||[]).forEach(sk=>{sk.level=3;sk.equipped=true;sk.xp=Math.max(sk.xp||0,9999);});
+  if(p.season){p.season.xp=(p.season.xp||[0,0,0,0,0]).map(v=>Math.max(v,9999));p.season.ap=(p.season.ap||[0,0,0,0,0]).map(v=>Math.max(v,99));p.season.progress=3;p.season.legacyPoints=Math.max(p.season.legacyPoints||0,9999);}
+  p.regressionAge=Math.max(p.regressionAge||0,45);
+}
+function potWord(v){v=+v;return v>=10?'Generational':v>=9?'Superstar ceiling':v>=8?'All-Star ceiling':v>=7?'Starter+':v>=5?'Rotation+':'Limited';}
+function htText(ins){ins=+ins||0;if(!ins)return '';return Math.floor(ins/12)+"'"+(ins%12)+'" · '+Math.round(ins*2.54)+' cm';}
+function playerSubText(){
+  if(!PLAYER)return '';
+  return PLAYER.fn+' '+PLAYER.ln+' — OVR '+ovr(PLAYER)+' · ceiling '+ceilAvg(PLAYER)+' · pot '+PLAYER.pot+' ('+potWord(PLAYER.pot)+') · '+(PLAYER.arc||'')+(PLAYER_CTX?' · '+PLAYER_CTX.leagueName+' · '+PLAYER_CTX.poolLabel:'')+analyzeLine(PLAYER);
+}
+function afterPlayerEdit(msg){
+  renderPlayer(); renderRoster();
+  if(typeof updateExportInfo==='function')updateExportInfo();
+  if(msg)toast(PLAYER?PLAYER.fn+' '+PLAYER.ln+': '+msg:msg);
+}
 function synthLeague(name,pools){
   return Object.assign({leagueName:name,teams:[],starTeams:[],freeAgents:[],draftClass:[],threePointContestants:[],retirees:[],hallOfFame:[],sliders:{},simulationSliders:{},difficulty:{},rules:{},settings:{},season:{},meta:{}},pools||{});
 }
 
+
+/* ---------- generic inspector: every field in the save, editable ---------- */
+function isHexColor(k,v){return typeof v==='string'&&/^[0-9A-Fa-f]{6}$/.test(v)&&(/C$/.test(k)||/color/i.test(k));}
+function inspSet(parent,key,val,path){
+  parent[key]=val;
+  if(typeof updateExportInfo==='function')updateExportInfo();
+}
+function inspLeaf(parent,key,path){
+  const v=parent[key];
+  const wrap=document.createElement('div');wrap.className='leaf';
+  const lab=document.createElement('label');lab.textContent=key;lab.title=path;wrap.appendChild(lab);
+  if(typeof v==='boolean'){
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=v;
+    cb.onchange=()=>inspSet(parent,key,cb.checked,path);
+    wrap.appendChild(cb);
+  }else if(typeof v==='number'){
+    const n=document.createElement('input');n.type='number';n.value=v;n.step='any';
+    n.onchange=()=>inspSet(parent,key,+n.value,path);
+    wrap.appendChild(n);
+  }else if(typeof v==='string'){
+    const t=document.createElement('input');t.type='text';t.value=v;
+    t.onchange=()=>inspSet(parent,key,t.value,path);
+    wrap.appendChild(t);
+    if(isHexColor(key,v)){
+      const c=document.createElement('input');c.type='color';c.value='#'+v;
+      c.oninput=()=>{t.value=c.value.slice(1).toUpperCase();inspSet(parent,key,t.value,path);};
+      t.addEventListener('change',()=>{if(/^[0-9A-Fa-f]{6}$/.test(t.value))c.value='#'+t.value;});
+      wrap.appendChild(c);
+    }
+  }else if(v===null){
+    const sp=document.createElement('span');sp.style.color='var(--dim)';sp.textContent='null';wrap.appendChild(sp);
+  }
+  return wrap;
+}
+function inspNode(parent,key,path,depth){
+  const v=parent[key];
+  if(v===null||typeof v!=='object')return inspLeaf(parent,key,path);
+  const det=document.createElement('details');
+  const sum=document.createElement('summary');
+  const cnt=Array.isArray(v)?v.length+' items':Object.keys(v).length+' fields';
+  sum.innerHTML='';sum.textContent=key+' ';
+  const cs=document.createElement('span');cs.className='cnt';cs.textContent='('+cnt+')';sum.appendChild(cs);
+  det.appendChild(sum);
+  let built=false;
+  const build=()=>{
+    if(built)return;built=true;
+    const body=document.createElement('div');
+    if(Array.isArray(v)){
+      const prim=v.length&&v.every(x=>x===null||typeof x!=='object');
+      if(prim||!v.length){
+        const row=document.createElement('div');row.className='leaf';
+        const vals=document.createElement('div');vals.className='arrvals';
+        v.forEach((item,idx)=>{
+          const n=document.createElement('input');n.type=typeof item==='number'?'number':'text';n.value=item??'';n.step='any';n.title=path+'['+idx+']';
+          n.onchange=()=>{v[idx]=typeof item==='number'?+n.value:n.value;if(typeof updateExportInfo==='function')updateExportInfo();};
+          vals.appendChild(n);
+        });
+        if(!v.length){const sp=document.createElement('span');sp.style.color='var(--dim)';sp.textContent='(empty list)';vals.appendChild(sp);}
+        row.appendChild(vals);body.appendChild(row);
+      }else{
+        const CAP=60;
+        v.slice(0,CAP).forEach((item,idx)=>{if(item&&typeof item==='object')body.appendChild(inspNode(v,idx,path+'['+idx+']',depth+1));});
+        if(v.length>CAP){const note=document.createElement('div');note.style.cssText='color:var(--dim);font-size:12px;padding:6px 10px';note.textContent='Showing first '+CAP+' of '+v.length+' — use All-fields search for the rest.';body.appendChild(note);}
+      }
+    }else{
+      Object.keys(v).forEach(k=>body.appendChild(inspNode(v,k,path+'.'+k,depth+1)));
+    }
+    det.appendChild(body);
+  };
+  det.addEventListener('toggle',()=>{if(det.open)build();});
+  if(depth<1){det.open=true;build();}
+  return det;
+}
+function renderInspector(container,obj,rootLabel){
+  if(!container)return;
+  container.innerHTML='';container.classList.add('insp');
+  if(!obj||typeof obj!=='object'){container.textContent='Nothing here in this save.';return;}
+  const holder={root:obj};
+  container.appendChild(inspNode(holder,'root',rootLabel||'root',0));
+  const first=container.querySelector&&container.querySelector('summary');
+  if(first&&rootLabel&&first.childNodes&&first.childNodes[0])first.childNodes[0].textContent=rootLabel+' ';
+}
+function flattenLeaves(obj,prefix,out,depth){
+  out=out||[];depth=depth||0;
+  if(!obj||typeof obj!=='object'||depth>7||out.length>4000)return out;
+  if(Array.isArray(obj)){
+    obj.forEach((v,i)=>{
+      const p=prefix+'['+i+']';
+      if(v===null||typeof v!=='object')out.push({path:p,parent:obj,key:i,value:v});
+      else flattenLeaves(v,p,out,depth+1);
+    });
+    return out;
+  }
+  Object.keys(obj).forEach(k=>{
+    const v=obj[k],p=prefix?prefix+'.'+k:k;
+    if(v===null||typeof v!=='object')out.push({path:p,parent:obj,key:k,value:v});
+    else flattenLeaves(v,p,out,depth+1);
+  });
+  return out;
+}
+function renderFlatSearch(container,obj,query,rootLabel){
+  container.innerHTML='';container.classList.add('insp');
+  const q=(query||'').trim().toLowerCase();
+  const leaves=flattenLeaves(obj,'',[]).filter(l=>l.path.toLowerCase().includes(q)).slice(0,300);
+  const head=document.createElement('div');head.style.cssText='font-family:var(--mono);font-size:12px;color:var(--dim);padding:4px 0';
+  head.textContent=leaves.length+' field(s) matching "'+query+'" in '+(rootLabel||'this object');
+  container.appendChild(head);
+  leaves.forEach(l=>{
+    const row=document.createElement('div');row.className='flatrow';
+    const code=document.createElement('code');code.textContent=l.path;row.appendChild(code);
+    const holder={v:l.parent[l.key]};
+    const leaf=inspLeaf(holder,'v',l.path);
+    leaf.style.flex='1';leaf.querySelector&&leaf.querySelector('label')&&(leaf.querySelector('label').style.display='none');
+    // write through to the real object
+    leaf.querySelectorAll&&leaf.querySelectorAll('input').forEach(inp=>{
+      const old=inp.onchange;
+      inp.onchange=ev=>{if(old)old(ev);l.parent[l.key]=holder.v;if(typeof updateExportInfo==='function')updateExportInfo();};
+      const oldIn=inp.oninput;
+      inp.oninput=ev=>{if(oldIn)oldIn(ev);l.parent[l.key]=holder.v;};
+    });
+    row.appendChild(leaf);container.appendChild(row);
+  });
+}
+function fieldGridEditor(container,obj,keys){
+  if(!container)return;
+  container.innerHTML='';container.classList.add('insp');
+  if(!obj||typeof obj!=='object'){container.innerHTML='<div style="color:var(--dim);font-size:13px">Not present on this player.</div>';return;}
+  (keys||Object.keys(obj)).forEach(k=>{if(k in obj)container.appendChild(inspNode(obj,k,k,1));});
+}
 /* ---------- loading ---------- */
 function loadText(text,name){
   let d;
@@ -388,7 +870,7 @@ function loadText(text,name){
     else if(d&&(Array.isArray(d.teams)||Array.isArray(d.starTeams)||Array.isArray(d.freeAgents)||Array.isArray(d.draftClass))){WRAP='league'; d={seasonLeagues:[d]};}
     else{status('<span class="err">Parsed, but no seasonLeagues, league, or player found — not a Hoop Land save.</span>');return;}
   }
-  DATA=d; ORIG=text; FILENAME=name||'HOOPLAND_SAVE'; LI=0; TEAM=null; TEAM_KIND='t'; PLAYER=null; PLAYER_CTX=null; undoStack=[]; changes=[];
+  invalidatePlayerIndex(); DATA=d; ORIG=text; FILENAME=name||'HOOPLAND_SAVE'; LI=0; TEAM=null; TEAM_KIND='t'; PLAYER=null; PLAYER_CTX=null; undoStack=[]; changes=[];
   $('log').textContent='No changes yet.';
   $('btnUndo').disabled=true;
   ['btnReset','btnDownload','btnCopy'].forEach(id=>$(id).disabled=false);
@@ -492,7 +974,7 @@ function renderTradeBack(){
   s.value=cur;
 }
 function renderTeam(){
-  if(!TEAM){$('teamCard').innerHTML='No team in this file — use <b>Find any player</b> above.';updateExportInfo();return;}
+  if(!TEAM){window._inspTeam=null;const _ti=$('teamInspector');if(_ti)_ti.innerHTML='';$('teamCard').innerHTML='No team in this file — use <b>Find any player</b> above.';updateExportInfo();return;}
   const fo=TEAM.frontOffice||{};
   $('teamCard').innerHTML='<b>'+teamName(TEAM)+'</b><br><span class="coins">'+(fo.coins??0)+' coins</span> · '+(TEAM.roster?TEAM.roster.length:0)+' players · fans '+(fo.fans??'-');
   $('edCoins').value=fo.coins??0;
@@ -512,10 +994,12 @@ function renderTeam(){
   });
   updateExportInfo();
 }
+let _exportTimer=null,_exportMB=null;
 function updateExportInfo(){
   if(!DATA)return;
-  const bytes=new Blob([rawSave()]).size;
-  $('exportInfo').textContent=(bytes/1048576).toFixed(1)+' MB raw · '+changes.length+' change(s)';
+  $('exportInfo').textContent=(_exportMB?_exportMB+' MB raw · ':'')+changes.length+' change(s)';
+  clearTimeout(_exportTimer);
+  _exportTimer=setTimeout(()=>{try{_exportMB=(new Blob([rawSave()]).size/1048576).toFixed(1);$('exportInfo').textContent=_exportMB+' MB raw · '+changes.length+' change(s)';}catch(_){}},600);
 }
 /* ---------- roster / player ---------- */
 function renderRoster(){
@@ -544,13 +1028,109 @@ function maxPlayer(p){
   p.pot=10; healPlayer(p);
   (p.skills||[]).forEach(s=>{s.level=3;s.equipped=true;});
 }
+function showPlayerTab(name,btn){
+  document.querySelectorAll('.tabpane').forEach(pn=>pn.hidden=pn.id!=='tab-'+name);
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('sel',b.dataset.tab===name));
+  if(name==='advanced')renderPlayerAdvanced();
+}
+function renderPlayerAdvanced(){
+  const box=$('playerInspector');if(!box||!PLAYER)return;
+  const q=($('advSearch')?$('advSearch').value:'').trim();
+  if(q.length>=2)renderFlatSearch(box,PLAYER,q,PLAYER.fn+' '+PLAYER.ln);
+  else renderInspector(box,PLAYER,PLAYER.fn+' '+PLAYER.ln);
+}
+function copyOutfitToAll(kind){
+  if(!PLAYER)return;
+  const arr=PLAYER[kind]||[];
+  const sel=kind==='accessories'?$('accSel'):$('suitSel');
+  const src=arr[+(sel?sel.value:0)||0]; if(!src)return;
+  pushUndo('copy outfit');
+  arr.forEach((o,i)=>{if(o!==src){const clone=JSON.parse(JSON.stringify(src));Object.keys(o).forEach(k=>delete o[k]);Object.assign(o,clone);}});
+  logChange(PLAYER.fn+' '+PLAYER.ln+': copied '+kind+' outfit to all '+arr.length);
+  afterPlayerEdit('outfit copied to all');
+}
+function bindField(id,setter,after){
+  const el=$(id); if(!el)return;
+  el.onchange=()=>{setter(el.type==='checkbox'?el.checked:(el.type==='number'||el.type==='range'?+el.value:el.value));if(typeof updateExportInfo==='function')updateExportInfo();if(after)after();};
+}
+function renderSkills(){
+  const box=$('skillsGrid'); if(!box)return; box.innerHTML='';
+  (PLAYER.skills||[]).forEach((sk,idx)=>{
+    const row=document.createElement('div');row.className='skillrow';
+    const id=document.createElement('span');id.className='sid';id.textContent=sk.id||('#'+idx);row.appendChild(id);
+    const lvl=document.createElement('select');
+    [0,1,2,3].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent='Lvl '+v;lvl.appendChild(o);});
+    lvl.value=sk.level??0; lvl.title='level';
+    lvl.onchange=()=>{sk.level=+lvl.value;updateExportInfo();};
+    row.appendChild(lvl);
+    const xp=document.createElement('input');xp.type='number';xp.min=0;xp.value=sk.xp??0;xp.title='skill XP';
+    xp.onchange=()=>{sk.xp=Math.max(0,+xp.value||0);updateExportInfo();};
+    row.appendChild(xp);
+    const lab=document.createElement('label');
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!sk.equipped;
+    cb.onchange=()=>{sk.equipped=cb.checked;updateExportInfo();};
+    lab.appendChild(cb);const _e=document.createElement('span');_e.textContent='Equipped';lab.appendChild(_e);row.appendChild(lab);
+    box.appendChild(row);
+  });
+  if(!(PLAYER.skills||[]).length)box.innerHTML='<div style="color:var(--dim);font-size:13px">No skills on this player.</div>';
+}
+function renderOutfitSelectors(){
+  const fill=(selId,arr,boxId)=>{
+    const sel=$(selId),box=$(boxId);if(!sel||!box)return;
+    const cur=sel.value;sel.innerHTML='';
+    (arr||[]).forEach((_,i)=>{const o=document.createElement('option');o.value=i;o.textContent='Outfit '+(i+1);sel.appendChild(o);});
+    sel.value=(cur!==''&&arr&&arr[+cur])?cur:'0';
+    const draw=()=>fieldGridEditor(box,(arr||[])[+sel.value||0]);
+    sel.onchange=draw;draw();
+  };
+  fill('accSel',PLAYER.accessories,'accessoriesBox');
+  fill('suitSel',PLAYER.suits,'suitsBox');
+}
 function renderPlayer(){
   const ed=$('playerEditor');
   if(!PLAYER){ed.style.display='none';$('playerSub').textContent='Select a player from the roster — or find anyone above.';return;}
   ed.style.display='block';
   if(!PLAYER.attributes||typeof PLAYER.attributes!=='object')PLAYER.attributes={};
-  $('playerSub').textContent=PLAYER.fn+' '+PLAYER.ln+' — OVR '+ovr(PLAYER)+' · '+(PLAYER.arc||'')+(PLAYER_CTX?' · 📍 '+PLAYER_CTX.leagueName+' · '+PLAYER_CTX.poolLabel:'')+analyzeLine(PLAYER);
-  $('plAge').value=PLAYER.age; $('plHt').value=PLAYER.ht; $('plPot').value=PLAYER.pot;
+  if(!PLAYER.season||typeof PLAYER.season!=='object')PLAYER.season={};
+  if(!PLAYER.contract||typeof PLAYER.contract!=='object')PLAYER.contract={};
+  $('playerSub').textContent=playerSubText();
+  /* overview / identity */
+  const setVal=(id,v)=>{const el=$(id);if(el)el.value=v??'';};
+  setVal('plFn',PLAYER.fn);setVal('plLn',PLAYER.ln);setVal('plTag',PLAYER.tag);setVal('plArc',PLAYER.arc);
+  setVal('plHome',PLAYER.home);setVal('plCtry',PLAYER.ctry);setVal('plAge',PLAYER.age);setVal('plYrsExp',PLAYER.yrs);
+  setVal('plHt',PLAYER.ht);setVal('plWt',PLAYER.wt);setVal('plNum',PLAYER.num);setVal('plGender',PLAYER.gender);
+  setVal('plPos',PLAYER.pos);setVal('plTeamPos',PLAYER.teamPos);setVal('plPosRnk',PLAYER.posRnk);setVal('plLinePos',PLAYER.linePos);
+  setVal('plPri',PLAYER.pri);setVal('plSec',PLAYER.sec);setVal('plUsage',PLAYER.usage);setVal('plStatus',PLAYER.status);
+  setVal('plTid',PLAYER.tid);setVal('plLeague',PLAYER.league);
+  if($('plHtFt'))$('plHtFt').textContent=htText(PLAYER.ht)?'— '+htText(PLAYER.ht):'';
+  const arcs=[...new Set(findEveryPlayer().slice(0,400).map(e=>e.p.arc).filter(Boolean))];
+  const dl=$('arcList');if(dl&&!dl.children.length)arcs.forEach(a=>{const o=document.createElement('option');o.value=a;dl.appendChild(o);});
+  bindField('plFn',v=>PLAYER.fn=v,()=>{renderPlayer();renderRoster();});
+  bindField('plLn',v=>PLAYER.ln=v,()=>{renderPlayer();renderRoster();});
+  bindField('plTag',v=>PLAYER.tag);bindField('plArc',v=>PLAYER.arc);
+  bindField('plHome',v=>PLAYER.home=v);bindField('plCtry',v=>PLAYER.ctry=v);
+  bindField('plAge',v=>PLAYER.age=clampNum(v,12,99),()=>renderRoster());
+  bindField('plYrsExp',v=>PLAYER.yrs=clampNum(v,0,40));
+  bindField('plHt',v=>{PLAYER.ht=clampNum(v,48,110);if($('plHtFt'))$('plHtFt').textContent='— '+htText(PLAYER.ht);});
+  bindField('plWt',v=>PLAYER.wt=clampNum(v,50,600));
+  bindField('plNum',v=>PLAYER.num=clampNum(v,0,99),()=>renderRoster());
+  bindField('plGender',v=>PLAYER.gender=clampNum(v,0,2));
+  bindField('plPos',v=>PLAYER.pos=clampNum(v,0,20));bindField('plTeamPos',v=>PLAYER.teamPos=clampNum(v,0,20));
+  bindField('plPosRnk',v=>PLAYER.posRnk=clampNum(v,0,30));bindField('plLinePos',v=>PLAYER.linePos=clampNum(v,-1,30));
+  bindField('plPri',v=>PLAYER.pri=clampNum(v,0,30));bindField('plSec',v=>PLAYER.sec=clampNum(v,0,30));
+  bindField('plUsage',v=>PLAYER.usage=clampNum(v,0,100));bindField('plStatus',v=>PLAYER.status=clampNum(v,0,20));
+  bindField('plTid',v=>{PLAYER.tid=+v;if(PLAYER.contract)PLAYER.contract.tid=+v;});
+  bindField('plLeague',v=>PLAYER.league=clampNum(v,0,9));
+  /* minutes[] */
+  const mg=$('minutesGrid');if(mg){mg.innerHTML='';if(!Array.isArray(PLAYER.minutes))PLAYER.minutes=[0,0,0,0,0,0];
+    PLAYER.minutes.forEach((m,i)=>{
+      const f=document.createElement('div');f.className='fld';
+      const l=document.createElement('label');l.textContent='minutes['+i+']';f.appendChild(l);
+      const n=document.createElement('input');n.type='number';n.value=m;n.min=0;
+      n.onchange=()=>{PLAYER.minutes[i]=Math.max(0,+n.value||0);updateExportInfo();};
+      f.appendChild(n);mg.appendChild(f);
+    });}
+  /* ratings */
   const g=$('attrGrid'); g.innerHTML='';
   ATTRS.forEach(a=>{
     if(!Array.isArray(PLAYER.attributes[a]))PLAYER.attributes[a]=[0,0];
@@ -558,23 +1138,15 @@ function renderPlayer(){
     const d=document.createElement('div');d.className='attr';
     d.innerHTML='<b>'+a+'</b>';
     const r=document.createElement('input');r.type='range';r.min=0;r.max=20;r.value=cur;
-    const n=document.createElement('input');n.type='number';n.className='v';n.min=0;n.max=20;n.value=ceil;n.title='ceiling';
+    const n=document.createElement('input');n.type='number';n.className='v';n.min=0;n.max=20;n.value=ceil;n.title='ceiling (potential cap)';
     const lab=document.createElement('span');lab.className='v';lab.textContent=cur+'/';
-    r.oninput=()=>{PLAYER.attributes[a][0]=+r.value;if(PLAYER.attributes[a][1]<+r.value){PLAYER.attributes[a][1]=+r.value;n.value=r.value;}lab.textContent=r.value+'/';};
-    r.onchange=()=>{renderRoster();$('playerSub').textContent=PLAYER.fn+' '+PLAYER.ln+' — OVR '+ovr(PLAYER);};
-    n.onchange=()=>{PLAYER.attributes[a][1]=Math.max(0,Math.min(20,+n.value||0));};
-    d.append(r,lab,n); g.appendChild(d);
+    const gap=document.createElement('span');gap.className='gapbadge';gap.textContent=(ceil-cur)>0?'+'+(ceil-cur):'';
+    r.oninput=()=>{PLAYER.attributes[a][0]=+r.value;if(PLAYER.attributes[a][1]<+r.value){PLAYER.attributes[a][1]=+r.value;n.value=r.value;}lab.textContent=r.value+'/';gap.textContent=(PLAYER.attributes[a][1]-PLAYER.attributes[a][0])>0?'+'+(PLAYER.attributes[a][1]-PLAYER.attributes[a][0]):'';$('playerSub').textContent=playerSubText();};
+    r.onchange=()=>{renderRoster();renderPotSummary();updateExportInfo();};
+    n.onchange=()=>{PLAYER.attributes[a][1]=clampNum(n.value,0,20);if(PLAYER.attributes[a][0]>PLAYER.attributes[a][1]){PLAYER.attributes[a][0]=PLAYER.attributes[a][1];r.value=PLAYER.attributes[a][0];lab.textContent=r.value+'/';}gap.textContent=(PLAYER.attributes[a][1]-PLAYER.attributes[a][0])>0?'+'+(PLAYER.attributes[a][1]-PLAYER.attributes[a][0]):'';renderPotSummary();updateExportInfo();$('playerSub').textContent=playerSubText();};
+    d.append(r,lab,n,gap); g.appendChild(d);
   });
-  renderPlayerExtra();
-}
-function renderPlayerExtra(){
-  if(!PLAYER)return;
-  $('plNum').value=PLAYER.num??0; $('plWt').value=PLAYER.wt??0; $('plReg').value=PLAYER.regressionAge??35;
-  const c=PLAYER.contract||{};
-  $('plYrs').value=c.yrs??0; $('plSal').value=c.sal??0; $('plNil').value=c.nil??0;
-  $('plGpa').value=(PLAYER.season||{}).gpa??0;
-  const xp=(PLAYER.season||{}).xp||[], ap=(PLAYER.season||{}).ap||[];
-  $('plXpInfo').textContent='XP ['+xp.join(',')+'] · AP ['+ap.join(',')+']';
+  /* tendencies */
   const tg=$('tendGrid'); tg.innerHTML='';
   Object.keys(PLAYER.tendencies||{}).forEach(k=>{
     const d=document.createElement('div');d.className='attr';
@@ -582,9 +1154,81 @@ function renderPlayerExtra(){
     const r=document.createElement('input');r.type='range';r.min=-5;r.max=5;r.step=1;r.value=PLAYER.tendencies[k];
     const lab=document.createElement('span');lab.className='v';lab.textContent=PLAYER.tendencies[k];
     r.oninput=()=>{PLAYER.tendencies[k]=+r.value;lab.textContent=r.value;};
+    r.onchange=()=>updateExportInfo();
     d.append(r,lab); tg.appendChild(d);
   });
+  /* potential */
+  setVal('plPot',PLAYER.pot); setVal('plPotR',PLAYER.pot); setVal('plReg',PLAYER.regressionAge); setVal('plRegR',Math.max(25,Math.min(50,PLAYER.regressionAge||35)));
+  setVal('plProgress',PLAYER.season.progress);setVal('plFocus',PLAYER.season.focus);setVal('plRegimen',PLAYER.season.regimen);setVal('plLegacyPts',PLAYER.season.legacyPoints);
+  if($('potWord'))$('potWord').textContent=potWord(PLAYER.pot);
+  if($('plPotR')){$('plPotR').oninput=e=>{PLAYER.pot=+e.target.value;setVal('plPot',PLAYER.pot);$('potWord').textContent=potWord(PLAYER.pot);renderPotSummary();};$('plPotR').onchange=()=>{renderRoster();updateExportInfo();};}
+  bindField('plPot',v=>{PLAYER.pot=clampNum(v,0,10);setVal('plPotR',PLAYER.pot);$('potWord').textContent=potWord(PLAYER.pot);},()=>{renderRoster();renderPotSummary();});
+  if($('plRegR')){$('plRegR').oninput=e=>{PLAYER.regressionAge=+e.target.value;setVal('plReg',PLAYER.regressionAge);};}
+  bindField('plReg',v=>{PLAYER.regressionAge=clampNum(v,18,60);setVal('plRegR',Math.max(25,Math.min(50,PLAYER.regressionAge)));});
+  bindField('plProgress',v=>PLAYER.season.progress=clampNum(v,0,10));
+  bindField('plFocus',v=>PLAYER.season.focus=clampNum(v,0,10));
+  bindField('plRegimen',v=>PLAYER.season.regimen=clampNum(v,0,10));
+  bindField('plLegacyPts',v=>PLAYER.season.legacyPoints=Math.max(0,+v||0));
+  renderPotSummary();
+  /* xp / ap buckets */
+  const xg=$('xpGrid');if(xg){xg.innerHTML='';
+    if(!Array.isArray(PLAYER.season.xp))PLAYER.season.xp=[0,0,0,0,0];
+    if(!Array.isArray(PLAYER.season.ap))PLAYER.season.ap=[0,0,0,0,0];
+    PLAYER.season.xp.forEach((v,i)=>{
+      const f=document.createElement('div');f.className='fld';
+      f.innerHTML='<label>XP['+i+'] / AP['+i+']</label>';
+      const row=document.createElement('div');row.style.display='flex';row.style.gap='6px';
+      const n=document.createElement('input');n.type='number';n.value=v;n.min=0;n.title='XP bucket '+i;
+      n.onchange=()=>{PLAYER.season.xp[i]=Math.max(0,+n.value||0);renderXpInfo();updateExportInfo();};
+      const a2=document.createElement('input');a2.type='number';a2.value=PLAYER.season.ap[i]??0;a2.min=0;a2.title='AP bucket '+i;
+      a2.onchange=()=>{PLAYER.season.ap[i]=Math.max(0,+a2.value||0);renderXpInfo();updateExportInfo();};
+      row.append(n,a2);f.appendChild(row);xg.appendChild(f);
+    });}
+  renderXpInfo();
+  /* skills, body, season, stats */
+  renderSkills();
+  fieldGridEditor($('appearanceBox'),PLAYER.appearance);
+  renderOutfitSelectors();
+  fieldGridEditor($('locBox'),PLAYER.loc);
+  const c=PLAYER.contract||{};
+  setVal('plYrs',c.yrs);setVal('plSal',c.sal);setVal('plNil',c.nil);setVal('plConType',c.type);setVal('plConOpt',c.opt);setVal('plConNoTrd',c.noTrd);
+  if($('plConCanExt'))$('plConCanExt').checked=!!c.canExt;
+  const ext=c.ext||{};
+  setVal('plExtYrs',ext.yrs);setVal('plExtSal',ext.sal);setVal('plExtOpt',ext.opt);setVal('plExtNoTrd',ext.noTrd);
+  const ensureExt=()=>{if(!PLAYER.contract.ext||typeof PLAYER.contract.ext!=='object')PLAYER.contract.ext={yrs:0,sal:0,opt:0,noTrd:0};return PLAYER.contract.ext;};
+  bindField('plYrs',v=>PLAYER.contract.yrs=clampNum(v,0,15));bindField('plSal',v=>PLAYER.contract.sal=Math.max(0,+v||0));
+  bindField('plNil',v=>PLAYER.contract.nil=Math.max(0,+v||0));bindField('plConType',v=>PLAYER.contract.type=clampNum(v,0,10));
+  bindField('plConOpt',v=>PLAYER.contract.opt=clampNum(v,0,5));bindField('plConNoTrd',v=>PLAYER.contract.noTrd=clampNum(v,0,5));
+  bindField('plConCanExt',v=>PLAYER.contract.canExt=v);
+  bindField('plExtYrs',v=>ensureExt().yrs=clampNum(v,0,15));bindField('plExtSal',v=>ensureExt().sal=Math.max(0,+v||0));
+  bindField('plExtOpt',v=>ensureExt().opt=clampNum(v,0,5));bindField('plExtNoTrd',v=>ensureExt().noTrd=clampNum(v,0,5));
+  fieldGridEditor($('seasonBox'),PLAYER.season,['condition','morale','restDay','onTradeBlock','watch','scout','protect','retiring','following','gpa','relationship','legacy','focus','regimen','progress']);
+  if(!PLAYER.season.injury||typeof PLAYER.season.injury!=='object')PLAYER.season.injury={yr:0,core:0,upperBody:0,lowerBody:0,minorSeverity:0,majorSeverity:0,gamesOut:0,ageRegression:0,age:0};
+  fieldGridEditor($('injuryBox'),PLAYER.season.injury);
+  fieldGridEditor($('gameStatusBox'),PLAYER.gameStatus);
+  fieldGridEditor($('historyBox'),PLAYER.history);
+  fieldGridEditor($('careerGoalsBox'),PLAYER.careerGoals);
+  fieldGridEditor($('gameStatsBox'),PLAYER.gameStats);
+  fieldGridEditor($('careerStatsBox'),PLAYER.careerStats?PLAYER.careerStats.season:null);
+  const lastStat=(PLAYER.stats||[])[(PLAYER.stats||[]).length-1];
+  fieldGridEditor($('seasonStatsBox'),lastStat&&lastStat.season?lastStat.season[0]:null);
+  const adv=$('tab-advanced');
+  if(adv&&!adv.hidden)renderPlayerAdvanced();
 }
+function renderPotSummary(){
+  const box=$('potSummary');if(!box||!PLAYER)return;
+  const cur=ovr(PLAYER),ceil=ceilAvg(PLAYER);
+  box.innerHTML='<div class="statbox"><small>CURRENT OVR</small><b>'+cur+'</b></div>'
+    +'<div class="statbox"><small>POTENTIAL OVR (ceilings)</small><b class="goldv">'+ceil+'</b></div>'
+    +'<div class="statbox"><small>ROOM TO GROW</small><b>'+(Math.round((ceil-cur)*10)/10)+'</b></div>'
+    +'<div class="statbox"><small>POT RATING</small><b>'+(PLAYER.pot??'-')+'/10</b></div>'
+    +'<div class="statbox"><small>REGRESSION AGE</small><b>'+(PLAYER.regressionAge??'-')+'</b></div>';
+}
+function renderXpInfo(){
+  const el=$('plXpInfo');if(!el||!PLAYER)return;
+  el.textContent='XP ['+((PLAYER.season||{}).xp||[]).join(',')+'] · AP ['+((PLAYER.season||{}).ap||[]).join(',')+']';
+}
+function renderPlayerExtra(){ /* merged into renderPlayer tabs; kept for older callers */ }
 /* ---------- presets ---------- */
 function applyPreset(key){
   if(!TEAM)return;
@@ -604,6 +1248,8 @@ function applyPreset(key){
   if(key==='heal'){roster.forEach(healPlayer);logChange(tn+' healed, condition/morale 100');}
   if(key==='staff'){(fo.staff||[]).forEach(s=>{if(s.attributes){s.attributes.development=[20,20];s.attributes.motivation=[20,20];s.attributes.leadership=[20,20];}});logChange(tn+' staff maxed 20/20');}
   if(key==='young'){roster.forEach(p=>p.age=18);logChange(tn+' roster age → 18');}
+  if(key==='realize'){roster.forEach(p=>realizePotential(p,0));logChange(tn+' roster realized their potential (current = ceilings)');}
+  if(key==='ceil2'){roster.forEach(p=>{bumpCeilings(p,2);p.pot=Math.min(10,(p.pot||0)+1);});logChange(tn+' ceilings +2, pot +1 (max 10)');}
   if(key==='dynasty'){
     fo.coins=9999; fo.fans=100; fo.condition=100; fo.morale=100; TEAM.prestigePoints=999;
     (fo.facilities||[]).forEach(f=>{f.tier=4;f.condition=5;});
@@ -654,7 +1300,7 @@ function renderSteal(q){
         logChange('Stole '+x.p.fn+' '+x.p.ln+' ('+x.poolLabel+') → '+teamName(TEAM));
         toast(x.p.fn+' '+x.p.ln+' is now on '+teamName(TEAM));
       }
-      renderTeam(); renderRoster(); renderTradeBack(); renderSteal($('stealSearch').value); renderFind($('findSearch').value,$('findPool').value,true); updateExportInfo();
+      invalidatePlayerIndex(); renderTeam(); renderRoster(); renderTradeBack(); renderSteal($('stealSearch').value); renderFind($('findSearch').value,$('findPool').value,true); updateExportInfo();
     };
     td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
   });
@@ -688,7 +1334,7 @@ function downloadSave(){
 $('btnPick').onclick=()=>$('fileInput').click();
 $('fileInput').onchange=e=>{const f=e.target.files[0];if(f)f.text().then(t=>loadText(t,f.name));};
 $('btnPasteBox').onclick=()=>{const b=$('pasteBox');b.style.display=b.style.display==='none'?'block':'none';b.focus();};
-$('pasteBox').addEventListener('input',e=>{const v=e.target.value.trim();if(v.startsWith('{')&&v.length>200)loadText(v,'HOOPLAND_SAVE');});
+$('pasteBox').addEventListener('input',e=>{const v=e.target.value.trim();if((v.startsWith('{')||v.startsWith('['))&&v.length>100)loadText(v,'HOOPLAND_SAVE');});
 $('btnFetch').onclick=async()=>{
   const u=$('urlInput').value.trim(); if(!u)return;
   status('Fetching…');
@@ -712,7 +1358,7 @@ document.addEventListener('keydown',e=>{
 });
 function doUndo(){
   const u=undoStack.pop(); if(!u)return;
-  DATA=JSON.parse(u.snap);
+  DATA=JSON.parse(u.snap); invalidatePlayerIndex();
   const keepRef=TEAM?teamRef(TEAM,TEAM_KIND):null;
   const keepPid=PLAYER?PLAYER.id:null, keepLi=PLAYER_CTX?PLAYER_CTX.li:LI;
   PLAYER=null; PLAYER_CTX=null;
@@ -827,6 +1473,7 @@ function renderLeagueEditor(){
     }
     box.appendChild(row);
   }
+  if(['season','meta','coachSettings','career','optimization','workshop'].includes(bucket)){renderInspector(box,lg[bucket],lg.leagueName+' · '+bucket);return;}
   if(bucket==='seasonQuick'){SEASON_QUICK.forEach(([k,label])=>{if(lg.season&&k in lg.season)fieldRow(label,lg.season,k);});}
   else{const obj=lg[bucket]||{};Object.keys(obj).forEach(k=>fieldRow(k,obj,k));}
 }
@@ -859,10 +1506,9 @@ $('plReg').onchange=e=>{if(PLAYER)PLAYER.regressionAge=+e.target.value;};
 $('plYrs').onchange=e=>{if(PLAYER&&PLAYER.contract)PLAYER.contract.yrs=+e.target.value;};
 $('plSal').onchange=e=>{if(PLAYER&&PLAYER.contract)PLAYER.contract.sal=+e.target.value;};
 $('plNil').onchange=e=>{if(PLAYER&&PLAYER.contract)PLAYER.contract.nil=+e.target.value;};
-$('plGpa').onchange=e=>{if(PLAYER&&PLAYER.season)PLAYER.season.gpa=+e.target.value;};
 $('plXP').onclick=()=>{if(PLAYER&&PLAYER.season){pushUndo('xp');PLAYER.season.xp=(PLAYER.season.xp||[]).map(v=>v+999);logChange(PLAYER.fn+' '+PLAYER.ln+' +999 XP');renderPlayerExtra();}};
 $('plAP').onclick=()=>{if(PLAYER&&PLAYER.season){pushUndo('ap');PLAYER.season.ap=(PLAYER.season.ap||[]).map(v=>v+10);logChange(PLAYER.fn+' '+PLAYER.ln+' +10 AP');renderPlayerExtra();}};
-$('plClone').onclick=()=>{if(PLAYER){pushUndo('clone');const c=clonePlayer(PLAYER);logChange('Cloned '+c.fn+' '+c.ln+' (new id '+c.id+') into '+(PLAYER_CTX?PLAYER_CTX.poolLabel:(TEAM?teamName(TEAM):'free agents')));renderTeam();renderRoster();renderTradeBack();renderFind($('findSearch').value,$('findPool').value,true);toast('Cloned '+c.fn+' '+c.ln);}};
+$('plClone').onclick=()=>{if(PLAYER){pushUndo('clone');const c=clonePlayer(PLAYER); invalidatePlayerIndex();logChange('Cloned '+c.fn+' '+c.ln+' (new id '+c.id+') into '+(PLAYER_CTX?PLAYER_CTX.poolLabel:(TEAM?teamName(TEAM):'free agents')));renderTeam();renderRoster();renderTradeBack();renderFind($('findSearch').value,$('findPool').value,true);toast('Cloned '+c.fn+' '+c.ln);}};
 /* ---------- GitHub publish (Git Data API) ---------- */
 function ghCfg(){
   return {owner:$('ghOwner').value.trim(),repo:$('ghRepo').value.trim(),branch:$('ghBranch').value.trim()||'main',token:$('ghToken').value.trim()};
@@ -956,6 +1602,30 @@ function renderPubHistory(){
 $('btnPublish').onclick=publishSave;
 $('btnCopyRawLink').onclick=async()=>{try{await navigator.clipboard.writeText($('pubRawUrl').value);toast('Raw link copied — paste into Hoop Land.');}catch(e){$('pubRawUrl').select();document.execCommand('copy');}};
 $('btnCopyPagesLink').onclick=async()=>{try{await navigator.clipboard.writeText($('pubPagesUrl').value);toast('Pages link copied.');}catch(e){$('pubPagesUrl').select();document.execCommand('copy');}};
+
+/* ---------- ultimate trainer wiring ---------- */
+$('plGoat').onclick=()=>{if(PLAYER){pushUndo('goat');goatPlayer(PLAYER);logChange('GOAT mode: '+PLAYER.fn+' '+PLAYER.ln);afterPlayerEdit('GOAT mode on');}};
+document.addEventListener('paste',e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='textarea'||tag==='select')return;
+  const t=(e.clipboardData||window.clipboardData).getData('text');
+  if(t&&t.trim().startsWith('[')&&t.length>100)loadText(t.trim(),'HOOPLAND_SAVE');
+});
+let _lastFocusUndo=0;
+document.addEventListener('focusin',e=>{
+  if(!DATA)return;
+  const inApp=e.target&&e.target.closest&&e.target.closest('#app');
+  if(!inApp)return;
+  const now=Date.now();
+  if(now-_lastFocusUndo<2000)return;
+  _lastFocusUndo=now;
+  undoStack.push({label:'edit',snap:JSON.stringify(DATA)});
+  if(undoStack.length>25)undoStack.shift();
+  $('btnUndo').disabled=false;
+});
+document.addEventListener('change',e=>{
+  if(DATA&&e.target&&e.target.closest&&e.target.closest('#app'))updateExportInfo();
+});
 loadGhCfg(); renderPubHistory(); autoPubName();
 </script>
 </body>
