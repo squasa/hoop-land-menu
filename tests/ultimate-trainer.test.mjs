@@ -133,4 +133,27 @@ for (const needle of ['id="mobileBar"', 'id="tab-potential"', 'id="playerInspect
 assert.ok(html.includes('@media(max-width:900px)'), 'mobile breakpoint present');
 assert.ok(html.includes('showPlayerTab'), 'player tabs wired');
 
+// Per-stat Max pot buttons: one next to every attribute, click maxes only that ceiling
+run(`loadText(${JSON.stringify(JSON.stringify(save))}, 'T2')`);
+run('openPlayer(findEveryPlayer()[0])');
+const potBtnCount = run("(()=>{let n=0;const walk=e=>{(e.children||[]).forEach(c=>{if(c.className&&String(c.className).includes('potmax'))n++;walk(c);});};walk(document.getElementById('attrGrid'));return n;})()");
+assert.equal(potBtnCount, ATTRS.length, 'one Max pot button per stat');
+run("(()=>{let b=null;const walk=e=>{(e.children||[]).forEach(c=>{if(!b&&c.className&&String(c.className).includes('potmax'))b=c;walk(c);});};walk(document.getElementById('attrGrid'));b.onclick();})()");
+assert.equal(run('PLAYER.attributes.LAY[1]'), 20, 'first stat ceiling maxed by button');
+assert.equal(run('PLAYER.attributes.LAY[0]'), 10, 'Max pot leaves current rating alone');
+assert.equal(run('PLAYER.attributes.DNK[1]'), 14, 'other ceilings untouched');
+
+// Chunked raw blob serializes identically to rawSave (safe big-file download path)
+assert.equal(run('typeof rawBlob'), 'function');
+assert.equal(run('typeof shareSave'), 'function');
+const blobText = await run('rawBlob().text()');
+assert.equal(blobText, run('rawSave()'), 'rawBlob text equals rawSave');
+
+// Undo snapshots are memory-capped so 19 MB saves cannot stack 25 full copies
+run("undoStack=Array.from({length:30},()=>({label:'x',snap:'x'.repeat(2000000)})); trimUndoStack();");
+const undoTotal = run('undoStack.reduce((n,u)=>n+u.snap.length,0)');
+assert.ok(run('undoStack.length') <= 25 && (undoTotal <= 24000000 || run('undoStack.length') === 1), 'undo memory capped');
+assert.ok(html.includes('potmax'), 'per-stat Max pot button shipped');
+assert.ok(html.includes('Share / Save on phone'), 'phone share export shipped');
+
 console.log('PASS ultimate-trainer: potential/skills/tendencies/GOAT/inspector/cache/mobile');

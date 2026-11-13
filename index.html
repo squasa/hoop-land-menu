@@ -189,6 +189,12 @@
   .grid>*,section.card,.picker>*{min-width:0}
   section.card{overflow:hidden}
   @media(max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+  .potmax{flex:0 0 auto;min-height:38px;padding:6px 9px;font-size:11.5px;white-space:nowrap}
+  .potmax:disabled{opacity:.45}
+  .attr{min-width:0}
+  .attr input[type=range]{min-width:56px}
+  @media(max-width:520px){.gapbadge{display:none}}
 </style>
 </head>
 <body>
@@ -362,7 +368,7 @@
               <label style="width:auto">Set all current to</label><input class="num" type="number" id="setAllCur" min="0" max="20" value="15" style="width:70px">
               <button class="btn sm" onclick="setAllCurrent(+document.getElementById('setAllCur').value||0)">Apply</button>
             </div>
-            <p class="sub" style="margin:8px 0 6px">Slider = current rating · number = ceiling (potential cap). Both 0–20. Gap = room to grow.</p>
+            <p class="sub" style="margin:8px 0 6px">Slider = current · number = ceiling · Max pot sets that stat’s ceiling to 20. Gap = room to grow.</p>
             <div class="attrGrid" id="attrGrid"></div>
             <p class="sub" style="margin:14px 0 6px">Tendencies (−5 to +5) — presets set the whole profile:</p>
             <div class="row">
@@ -488,9 +494,10 @@
 
       <section class="card" id="exportCard">
         <h2>Export</h2>
-        <p class="sub">Copy raw and paste into Hoop Land's import, or download the file. Shortcut: <kbd>Cmd/Ctrl+Shift+C</kbd> copies raw.</p>
+        <p class="sub">On a phone with a big save, use <b>Share / Save on phone</b> (or Publish for a link) — copying 15–20 MB through the clipboard can crash mobile Safari. On desktop, Copy raw is fastest. Shortcut: <kbd>Cmd/Ctrl+Shift+C</kbd> copies raw.</p>
         <div class="row">
-          <button class="btn gold" id="btnCopy2">Copy raw save</button>
+          <button class="btn gold" id="btnShare">Share / Save on phone</button>
+          <button class="btn" id="btnCopy2">Copy raw save</button>
           <button class="btn" id="btnDownload2">Download file</button>
           <span id="exportInfo" style="font-family:var(--mono);font-size:12px;color:var(--dim)"></span>
         </div>
@@ -569,7 +576,7 @@
 </main>
 <footer>Every edit happens locally in your browser — no server, no upload, works offline once loaded. Always keep a backup of your original save before importing an edited one. Attribute scale is 0–20, skill max is level 3, facility max is tier 4 (the game's own caps).</footer>
 <nav id="mobileBar" aria-label="Quick actions">
-  <button type="button" onclick="copyRaw()">Copy raw save</button>
+  <button type="button" onclick="shareSave()">Share file</button>
   <button type="button" onclick="downloadSave()">Download</button>
   <a href="#playerCard">Player</a>
   <a href="#findCard">Find</a>
@@ -582,14 +589,16 @@ const ATTRS=['LAY','DNK','INS','MID','TPT','FTS','DRB','PAS','ORE','DRE','STL','
 const FAC_NAMES=['Arena','Training','Medical','Scouting'];
 let DATA=null, ORIG='', FILENAME='HOOPLAND_SAVE', LI=0, TEAM=null, PLAYER=null;
 let PLAYER_CTX=null, TEAM_KIND='t', WRAP=null;
-let undoStack=[], changes=[];
+let undoStack=[], changes=[], SAVE_BYTES=0;
+const UNDO_BUDGET=24000000;
 
 function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2600);}
 function status(html){$('status').innerHTML=html;}
 function logChange(msg){changes.push(msg);$('log').textContent=changes.slice().reverse().join('\n');}
 function teamName(t){return ((t.city||'')+' '+(t.name||'')).trim();}
 function ovr(p){if(!p.attributes)return 0;const v=ATTRS.map(a=>(p.attributes[a]||[0])[0]);return Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10;}
-function pushUndo(label){undoStack.push({label,snap:JSON.stringify(DATA)});if(undoStack.length>25)undoStack.shift();$('btnUndo').disabled=false;}
+function trimUndoStack(){let total=undoStack.reduce((n,u)=>n+(u.snap?u.snap.length:0),0);while(undoStack.length>1&&(total>UNDO_BUDGET||undoStack.length>25)){total-=undoStack[0].snap?undoStack[0].snap.length:0;undoStack.shift();}}
+function pushUndo(label){if(!DATA)return;undoStack.push({label,snap:JSON.stringify(DATA)});trimUndoStack();$('btnUndo').disabled=false;}
 function league(){return DATA.seasonLeagues[LI];}
 
 /* ---------- any player, any pool (showcase / draft / FA / …) ---------- */
@@ -649,6 +658,7 @@ function ceilAvg(p){if(!p||!p.attributes)return 0;const v=ATTRS.map(a=>(p.attrib
 function setCeilings(p,val){if(!p||!p.attributes)return;val=clampNum(val,0,20);ATTRS.forEach(a=>{if(!Array.isArray(p.attributes[a]))p.attributes[a]=[0,0];p.attributes[a][1]=val;if(p.attributes[a][0]>val)p.attributes[a][0]=val;});}
 function bumpCeilings(p,d){if(!p||!p.attributes)return;ATTRS.forEach(a=>{if(!Array.isArray(p.attributes[a]))p.attributes[a]=[0,0];p.attributes[a][1]=clampNum((p.attributes[a][1]||0)+d,0,20);if(p.attributes[a][0]>p.attributes[a][1])p.attributes[a][0]=p.attributes[a][1];});}
 function realizePotential(p,gap){if(!p||!p.attributes)return;gap=gap||0;ATTRS.forEach(a=>{if(!Array.isArray(p.attributes[a]))p.attributes[a]=[0,0];p.attributes[a][0]=clampNum((p.attributes[a][1]||0)-gap,0,20);});}
+function maxStatPotential(p,a){if(!p||!p.attributes)return;if(!Array.isArray(p.attributes[a]))p.attributes[a]=[0,0];p.attributes[a][1]=20;}
 function potentialPreset(name){
   if(!PLAYER)return; pushUndo('potential '+name); const p=PLAYER;
   if(name==='youngstar'){p.age=18;p.pot=10;p.regressionAge=40;setCeilings(p,20);if(p.season){p.season.progress=3;}}
@@ -870,7 +880,7 @@ function loadText(text,name){
     else if(d&&(Array.isArray(d.teams)||Array.isArray(d.starTeams)||Array.isArray(d.freeAgents)||Array.isArray(d.draftClass))){WRAP='league'; d={seasonLeagues:[d]};}
     else{status('<span class="err">Parsed, but no seasonLeagues, league, or player found — not a Hoop Land save.</span>');return;}
   }
-  invalidatePlayerIndex(); DATA=d; ORIG=text; FILENAME=name||'HOOPLAND_SAVE'; LI=0; TEAM=null; TEAM_KIND='t'; PLAYER=null; PLAYER_CTX=null; undoStack=[]; changes=[];
+  invalidatePlayerIndex(); DATA=d; ORIG=text; SAVE_BYTES=new Blob([text]).size; FILENAME=name||'HOOPLAND_SAVE'; LI=0; TEAM=null; TEAM_KIND='t'; PLAYER=null; PLAYER_CTX=null; undoStack=[]; changes=[];
   $('log').textContent='No changes yet.';
   $('btnUndo').disabled=true;
   ['btnReset','btnDownload','btnCopy'].forEach(id=>$(id).disabled=false);
@@ -879,7 +889,7 @@ function loadText(text,name){
   renderFind('','',false);
   $('app').style.display='block';
   $('drop').style.display='none';
-  const mb=(new Blob([text]).size/1048576).toFixed(1);
+  const mb=(SAVE_BYTES/1048576).toFixed(1);
   const mine=myPlayers();
   status('<b>Loaded</b> '+FILENAME+' · '+mb+' MB · '+DATA.seasonLeagues.length+' league(s) · '+findEveryPlayer().length+' players found (all leagues, all pools)'+(mine.length?' · ★ My Player: <b>'+mine[0].p.fn+' '+mine[0].p.ln+'</b> ('+mine[0].poolLabel+') — hit ★ My Player':'' )+'.');
   $('app').scrollIntoView({behavior:'smooth'});
@@ -994,12 +1004,10 @@ function renderTeam(){
   });
   updateExportInfo();
 }
-let _exportTimer=null,_exportMB=null;
 function updateExportInfo(){
   if(!DATA)return;
-  $('exportInfo').textContent=(_exportMB?_exportMB+' MB raw · ':'')+changes.length+' change(s)';
-  clearTimeout(_exportTimer);
-  _exportTimer=setTimeout(()=>{try{_exportMB=(new Blob([rawSave()]).size/1048576).toFixed(1);$('exportInfo').textContent=_exportMB+' MB raw · '+changes.length+' change(s)';}catch(_){}},600);
+  const approx=SAVE_BYTES||(ORIG?ORIG.length:0);
+  $('exportInfo').textContent=(approx?'≈'+(approx/1048576).toFixed(1)+' MB raw · ':'')+changes.length+' change(s)'+(approx>8000000?' · big save: Share/Publish on phone':'');
 }
 /* ---------- roster / player ---------- */
 function renderRoster(){
@@ -1141,10 +1149,15 @@ function renderPlayer(){
     const n=document.createElement('input');n.type='number';n.className='v';n.min=0;n.max=20;n.value=ceil;n.title='ceiling (potential cap)';
     const lab=document.createElement('span');lab.className='v';lab.textContent=cur+'/';
     const gap=document.createElement('span');gap.className='gapbadge';gap.textContent=(ceil-cur)>0?'+'+(ceil-cur):'';
-    r.oninput=()=>{PLAYER.attributes[a][0]=+r.value;if(PLAYER.attributes[a][1]<+r.value){PLAYER.attributes[a][1]=+r.value;n.value=r.value;}lab.textContent=r.value+'/';gap.textContent=(PLAYER.attributes[a][1]-PLAYER.attributes[a][0])>0?'+'+(PLAYER.attributes[a][1]-PLAYER.attributes[a][0]):'';$('playerSub').textContent=playerSubText();};
+    const potBtn=document.createElement('button');potBtn.type='button';potBtn.className='btn sm potmax';potBtn.title='Set '+a+' potential ceiling to 20';if(potBtn.setAttribute)potBtn.setAttribute('aria-label','Max '+a+' potential');
+    const syncPotBtn=()=>{const maxed=(PLAYER.attributes[a][1]||0)>=20;potBtn.disabled=maxed;potBtn.textContent=maxed?'Pot 20':'Max pot';};
+    const syncGap=()=>{gap.textContent=(PLAYER.attributes[a][1]-PLAYER.attributes[a][0])>0?'+'+(PLAYER.attributes[a][1]-PLAYER.attributes[a][0]):'';syncPotBtn();};
+    potBtn.onclick=()=>{pushUndo(a+' potential');maxStatPotential(PLAYER,a);n.value=20;syncGap();renderPotSummary();$('playerSub').textContent=playerSubText();logChange(PLAYER.fn+' '+PLAYER.ln+' '+a+' potential ceiling → 20');updateExportInfo();toast(a+' potential maxed at 20');};
+    r.oninput=()=>{PLAYER.attributes[a][0]=+r.value;if(PLAYER.attributes[a][1]<+r.value){PLAYER.attributes[a][1]=+r.value;n.value=r.value;}lab.textContent=r.value+'/';syncGap();$('playerSub').textContent=playerSubText();};
     r.onchange=()=>{renderRoster();renderPotSummary();updateExportInfo();};
-    n.onchange=()=>{PLAYER.attributes[a][1]=clampNum(n.value,0,20);if(PLAYER.attributes[a][0]>PLAYER.attributes[a][1]){PLAYER.attributes[a][0]=PLAYER.attributes[a][1];r.value=PLAYER.attributes[a][0];lab.textContent=r.value+'/';}gap.textContent=(PLAYER.attributes[a][1]-PLAYER.attributes[a][0])>0?'+'+(PLAYER.attributes[a][1]-PLAYER.attributes[a][0]):'';renderPotSummary();updateExportInfo();$('playerSub').textContent=playerSubText();};
-    d.append(r,lab,n,gap); g.appendChild(d);
+    n.onchange=()=>{PLAYER.attributes[a][1]=clampNum(n.value,0,20);if(PLAYER.attributes[a][0]>PLAYER.attributes[a][1]){PLAYER.attributes[a][0]=PLAYER.attributes[a][1];r.value=PLAYER.attributes[a][0];lab.textContent=r.value+'/';}syncGap();renderPotSummary();updateExportInfo();$('playerSub').textContent=playerSubText();};
+    syncPotBtn();
+    d.append(r,lab,n,potBtn,gap); g.appendChild(d);
   });
   /* tendencies */
   const tg=$('tendGrid'); tg.innerHTML='';
@@ -1305,18 +1318,69 @@ function renderSteal(q){
     td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
   });
 }
-/* ---------- export ---------- */
+/* ---------- export (mobile-safe for 15-20MB saves) ---------- */
 function rawSave(){
   if(WRAP==='player')return JSON.stringify((DATA.seasonLeagues[0].freeAgents||[])[0]||{});
   if(WRAP==='array')return JSON.stringify(DATA.seasonLeagues[0].draftClass||[]);
   if(WRAP==='league')return JSON.stringify(DATA.seasonLeagues[0]);
   return JSON.stringify(DATA);
 }
+function rawParts(){
+  if(WRAP==='player')return [JSON.stringify((DATA.seasonLeagues[0].freeAgents||[])[0]||{})];
+  if(WRAP==='array')return [JSON.stringify(DATA.seasonLeagues[0].draftClass||[])];
+  if(WRAP==='league')return [JSON.stringify(DATA.seasonLeagues[0])];
+  const parts=['{'];
+  Object.keys(DATA).forEach((key,ki)=>{
+    if(ki)parts.push(',');
+    parts.push(JSON.stringify(key)+':');
+    const v=DATA[key];
+    if(key==='seasonLeagues'&&Array.isArray(v)){
+      parts.push('[');
+      v.forEach((lg,i)=>{if(i)parts.push(',');parts.push(JSON.stringify(lg));});
+      parts.push(']');
+    }else{
+      parts.push(JSON.stringify(v)??'null');
+    }
+  });
+  parts.push('}');
+  return parts;
+}
+function rawBlob(){return new Blob(rawParts(),{type:'application/json'});}
+function isCoarsePointer(){
+  try{return typeof window!=='undefined'&&window.matchMedia&&window.matchMedia('(pointer:coarse)').matches;}catch(_){return false;}
+}
+function isLargeSave(){return (SAVE_BYTES||(ORIG?ORIG.length:0))>8000000;}
+async function shareSave(){
+  if(!DATA)return;
+  try{
+    const blob=rawBlob();
+    if(typeof File!=='undefined'&&typeof navigator!=='undefined'&&navigator.share&&navigator.canShare){
+      const file=new File([blob],FILENAME,{type:'application/json'});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:'Hoop Land save'});
+        toast('Shared — save it to Files, then import the file in Hoop Land.');
+        return;
+      }
+    }
+  }catch(e){
+    if(e&&e.name==='AbortError')return;
+  }
+  downloadSave();
+}
 async function copyRaw(){
   if(!DATA)return;
+  if(isLargeSave()&&isCoarsePointer()&&typeof navigator!=='undefined'&&navigator.share){
+    toast('This save is too big for a phone clipboard — using Share instead.');
+    await shareSave();
+    return;
+  }
   const raw=rawSave();
   try{await navigator.clipboard.writeText(raw);toast('Raw save copied ('+(raw.length/1048576).toFixed(1)+' MB) — paste it into Hoop Land import.');}
   catch(e){
+    if(raw.length>8000000){
+      toast('Too big to copy safely on this device — use Share / Save on phone or Publish for a link.');
+      return;
+    }
     const ta=$('pasteBox');$('drop').style.display='block';ta.style.display='block';ta.value=raw;ta.focus();ta.select();
     try{document.execCommand('copy');toast('Copied. If not, the raw text is selected above — Cmd/Ctrl+C.');}
     catch(_){toast('Raw text is in the box at top — select all + copy.');}
@@ -1324,11 +1388,16 @@ async function copyRaw(){
 }
 function downloadSave(){
   if(!DATA)return;
-  const blob=new Blob([rawSave()],{type:'application/octet-stream'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=FILENAME;
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-  toast('Downloaded '+FILENAME);
+  try{
+    const blob=rawBlob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=FILENAME;a.rel='noopener';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    toast('Downloading '+FILENAME+' ('+(blob.size/1048576).toFixed(1)+' MB). If it stalls on your phone, use Share / Save instead.');
+  }catch(e){
+    toast('Download failed on this device — try Share / Save on phone or Publish.');
+  }
 }
 /* ---------- wiring ---------- */
 $('btnPick').onclick=()=>$('fileInput').click();
@@ -1372,7 +1441,7 @@ function doUndo(){
 }
 $('btnUndo').onclick=doUndo;
 $('btnReset').onclick=()=>{if(ORIG){pushUndo('reset');loadText(ORIG,FILENAME);toast('Back to the original save.');}};
-$('btnCopy').onclick=copyRaw; $('btnCopy2').onclick=copyRaw;
+$('btnCopy').onclick=copyRaw; $('btnCopy2').onclick=copyRaw; if($('btnShare'))$('btnShare').onclick=shareSave;
 $('btnDownload').onclick=downloadSave; $('btnDownload2').onclick=downloadSave;
 $('leagueSel').onchange=e=>{LI=+e.target.value;TEAM=null;buildTeams($('teamSearch').value);};
 $('teamSel').onchange=e=>selectTeam(e.target.value);
@@ -1566,12 +1635,13 @@ async function publishSave(){
   $('pubLog').textContent='';
   $('btnPublish').disabled=true;
   try{
-    pubLogLine('Preparing '+(rawSave().length/1048576).toFixed(1)+' MB save → '+path);
+    const _pubBlob=rawBlob(); pubLogLine('Preparing '+(_pubBlob.size/1048576).toFixed(1)+' MB save → '+path);
     const ref=await ghFetch(repoPath+'/git/ref/heads/'+c.branch);
     const headSha=ref.object.sha;
     const headCommit=await ghFetch(repoPath+'/git/commits/'+headSha);
     pubLogLine('Uploading file blob (big file, give it a moment)…');
-    const blob=await ghFetch(repoPath+'/git/blobs',{method:'POST',body:JSON.stringify({content:toBase64(rawSave()),encoding:'base64'})});
+    const _b64=(typeof FileReader!=='undefined')?await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.onerror=reject;r.readAsDataURL(_pubBlob);}):toBase64(rawSave());
+    const blob=await ghFetch(repoPath+'/git/blobs',{method:'POST',body:JSON.stringify({content:_b64,encoding:'base64'})});
     const tree=await ghFetch(repoPath+'/git/trees',{method:'POST',body:JSON.stringify({base_tree:headCommit.tree.sha,tree:[{path:path,mode:'100644',type:'blob',sha:blob.sha}]})});
     const commit=await ghFetch(repoPath+'/git/commits',{method:'POST',body:JSON.stringify({message:'Publish Hoop Land save '+name,tree:tree.sha,parents:[headSha]})});
     await ghFetch(repoPath+'/git/refs/heads/'+c.branch,{method:'PATCH',body:JSON.stringify({sha:commit.sha})});
@@ -1617,11 +1687,10 @@ document.addEventListener('focusin',e=>{
   const inApp=e.target&&e.target.closest&&e.target.closest('#app');
   if(!inApp)return;
   const now=Date.now();
-  if(now-_lastFocusUndo<2000)return;
+  const gap=isLargeSave()?15000:2000;
+  if(now-_lastFocusUndo<gap)return;
   _lastFocusUndo=now;
-  undoStack.push({label:'edit',snap:JSON.stringify(DATA)});
-  if(undoStack.length>25)undoStack.shift();
-  $('btnUndo').disabled=false;
+  pushUndo('edit');
 });
 document.addEventListener('change',e=>{
   if(DATA&&e.target&&e.target.closest&&e.target.closest('#app'))updateExportInfo();
